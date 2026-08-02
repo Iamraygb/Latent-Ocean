@@ -11,6 +11,12 @@ any similarity values are authored by hand to illustrate the concepts.
 | Stage | Name | Git tag | Folder | Status |
 |---|---|---|---|---|
 | 01 | Scene and draggable clouds | `stage-01` | [stages/stage-01-scene-and-clouds](stages/stage-01-scene-and-clouds/) | Complete |
+| 02 | Responsive world and CONFIG | `stage-02` | [stages/stage-02-responsive-world](stages/stage-02-responsive-world/) | Complete |
+| 03 | Reef geometry zone | — | — | Planned |
+| 04 | Reef Overlap metric and HUD | — | — | Planned |
+| 05 | Neighbour Compatibility and HUD | — | — | Planned |
+| 06 | Keyboard accessibility | — | — | Planned |
+| 07 | Visual polish and motion | — | — | Planned |
 
 ## How to revisit a stage
 
@@ -47,6 +53,10 @@ Each completed stage gets:
 Stage folders share the project's live `assets/` folder rather than duplicating ~5.3 MB
 of images per stage. The tradeoff: if an image is replaced later, older stage folders
 render with the newer image. The git tag always holds the true original.
+
+Because a stage folder sits two levels down, its asset paths are rewritten to
+`../../assets/`. From Stage 02 onward this applies to **both** `index.html` and
+`app.js`, since fish paths live in the CONFIG object rather than in the markup.
 
 ## Project structure
 
