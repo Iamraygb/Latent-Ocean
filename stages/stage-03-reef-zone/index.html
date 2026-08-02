@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Latent Ocean</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="ocean-scene">
+    <!--
+      #latent-world holds the natural aspect ratio of ocean-background.png.
+      It letterboxes rather than crops, so the reef and every distance ring
+      stay visible at any window size. All cloud elements are positioned as
+      percentages of this box, which keeps their designed placement identical
+      across screens.
+    -->
+    <div id="latent-world">
+      <img
+        class="ocean-background"
+        src="../../assets/ocean-background.png"
+        alt="A two-dimensional ocean space with a central reef surrounded by concentric distance rings"
+      >
+      <!-- .latent-cloud elements are built from CONFIG in app.js -->
+    </div>
+
+    <aside id="status-panel" aria-live="polite">
+      <h1>Latent Ocean</h1>
+      <p id="overlap-readout">Drag the translucent clouds to explore how their latent distributions overlap.</p>
+    </aside>
+
+    <noscript>
+      <p class="noscript-message">
+        This interactive prototype needs JavaScript enabled. The ocean above is a
+        simplified two-dimensional latent space; with JavaScript on, four draggable
+        translucent circles appear, each representing the latent distribution of a
+        single fish image.
+      </p>
+    </noscript>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>

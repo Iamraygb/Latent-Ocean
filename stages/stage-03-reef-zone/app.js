@@ -71,7 +71,7 @@ const CONFIG = {
     {
       id: 'round-orange',
       name: 'Round Orange Fish',
-      asset: 'assets/fish-round-orange.png',
+      asset: '../../assets/fish-round-orange.png',
       alt: 'Round orange fish',
       x: 42,
       y: 58,
@@ -81,7 +81,7 @@ const CONFIG = {
     {
       id: 'oval-teal',
       name: 'Oval Teal Fish',
-      asset: 'assets/fish-oval-teal.png',
+      asset: '../../assets/fish-oval-teal.png',
       alt: 'Oval teal fish',
       x: 53,
       y: 52,
@@ -91,7 +91,7 @@ const CONFIG = {
     {
       id: 'narrow-blue',
       name: 'Narrow Blue Fish',
-      asset: 'assets/fish-narrow-blue.png',
+      asset: '../../assets/fish-narrow-blue.png',
       alt: 'Narrow blue fish',
       x: 66,
       y: 38,
@@ -101,7 +101,7 @@ const CONFIG = {
     {
       id: 'eel-purple',
       name: 'Purple Eel',
-      asset: 'assets/fish-eel-purple.png',
+      asset: '../../assets/fish-eel-purple.png',
       alt: 'Long purple eel',
       x: 24,
       y: 27,

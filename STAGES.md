@@ -12,7 +12,7 @@ any similarity values are authored by hand to illustrate the concepts.
 |---|---|---|---|---|
 | 01 | Scene and draggable clouds | `stage-01` | [stages/stage-01-scene-and-clouds](stages/stage-01-scene-and-clouds/) | Complete |
 | 02 | Responsive world and CONFIG | `stage-02` | [stages/stage-02-responsive-world](stages/stage-02-responsive-world/) | Complete |
-| 03 | Reef geometry zone | — | — | Planned |
+| 03 | Reef geometry zone | `stage-03` | [stages/stage-03-reef-zone](stages/stage-03-reef-zone/) | Complete |
 | 04 | Reef Overlap metric and HUD | — | — | Planned |
 | 05 | Neighbour Compatibility and HUD | — | — | Planned |
 | 06 | Keyboard accessibility | — | — | Planned |
