@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Latent Ocean</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="ocean-scene">
+    <img
+      class="ocean-background"
+      src="../../assets/ocean-background.png"
+      alt="An ocean scene with a central reef surrounded by concentric distance rings"
+    >
+
+    <div class="latent-cloud cloud--orange" id="cloud-round-orange" data-name="Round Orange Fish" style="--x: 42%; --y: 58%;">
+      <div class="cloud-region"></div>
+      <img class="cloud-fish" src="../../assets/fish-round-orange.png" alt="Round orange fish" draggable="false">
+    </div>
+
+    <div class="latent-cloud cloud--teal" id="cloud-oval-teal" data-name="Oval Teal Fish" style="--x: 53%; --y: 52%;">
+      <div class="cloud-region"></div>
+      <img class="cloud-fish" src="../../assets/fish-oval-teal.png" alt="Oval teal fish" draggable="false">
+    </div>
+
+    <div class="latent-cloud cloud--blue" id="cloud-narrow-blue" data-name="Narrow Blue Fish" style="--x: 66%; --y: 38%;">
+      <div class="cloud-region"></div>
+      <img class="cloud-fish" src="../../assets/fish-narrow-blue.png" alt="Narrow blue fish" draggable="false">
+    </div>
+
+    <div class="latent-cloud cloud--purple" id="cloud-eel-purple" data-name="Purple Eel" style="--x: 24%; --y: 27%;">
+      <div class="cloud-region"></div>
+      <img class="cloud-fish" src="../../assets/fish-eel-purple.png" alt="Long purple eel" draggable="false">
+    </div>
+
+    <aside id="status-panel" aria-live="polite">
+      <h1>Latent Ocean</h1>
+      <p id="overlap-readout">Drag the translucent clouds to explore how their latent distributions overlap.</p>
+    </aside>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
