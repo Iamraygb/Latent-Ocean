@@ -15,7 +15,7 @@ any similarity values are authored by hand to illustrate the concepts.
 | 03 | Reef geometry zone | `stage-03` | [stages/stage-03-reef-zone](stages/stage-03-reef-zone/) | Complete |
 | 04 | Reef Overlap metric and HUD | `stage-04` | [stages/stage-04-reef-overlap](stages/stage-04-reef-overlap/) | Complete |
 | 05 | Neighbour Compatibility and HUD | `stage-05` | [stages/stage-05-neighbour-compatibility](stages/stage-05-neighbour-compatibility/) | Complete |
-| 06 | Keyboard accessibility | — | — | Planned |
+| 06 | Keyboard accessibility | `stage-06` | [stages/stage-06-keyboard-accessibility](stages/stage-06-keyboard-accessibility/) | Complete |
 | 07 | Visual polish and motion | — | — | Planned |
 
 ## How to revisit a stage
