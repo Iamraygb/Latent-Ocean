@@ -14,7 +14,7 @@ any similarity values are authored by hand to illustrate the concepts.
 | 02 | Responsive world and CONFIG | `stage-02` | [stages/stage-02-responsive-world](stages/stage-02-responsive-world/) | Complete |
 | 03 | Reef geometry zone | `stage-03` | [stages/stage-03-reef-zone](stages/stage-03-reef-zone/) | Complete |
 | 04 | Reef Overlap metric and HUD | `stage-04` | [stages/stage-04-reef-overlap](stages/stage-04-reef-overlap/) | Complete |
-| 05 | Neighbour Compatibility and HUD | — | — | Planned |
+| 05 | Neighbour Compatibility and HUD | `stage-05` | [stages/stage-05-neighbour-compatibility](stages/stage-05-neighbour-compatibility/) | Complete |
 | 06 | Keyboard accessibility | — | — | Planned |
 | 07 | Visual polish and motion | — | — | Planned |
 
@@ -90,3 +90,19 @@ latent-ocean/
 One fish is one 2D image example. One translucent circle is that single image's
 simplified latent distribution — not a cluster, population, or category containing
 other unseen images.
+
+## The two metrics
+
+They are deliberately distinct, and the distinction is the teaching point.
+
+**Reef Overlap** measures *location* — how much of the combined cloud area sits
+inside the reef, the central prior region.
+
+**Neighbour Compatibility** measures *shape similarity* — an area-weighted average
+of the designed similarity scores for the pairs that currently overlap each other.
+It is not a second measurement of how much they overlap. Reef overlap contributes
+nothing to it.
+
+Similarity scores are **designed demonstration values based on body shape**, set by
+hand in `CONFIG.similarity`. The page never analyses the images, and no value comes
+from a trained model.
