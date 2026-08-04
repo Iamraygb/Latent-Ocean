@@ -16,7 +16,7 @@ any similarity values are authored by hand to illustrate the concepts.
 | 04 | Reef Overlap metric and HUD | `stage-04` | [stages/stage-04-reef-overlap](stages/stage-04-reef-overlap/) | Complete |
 | 05 | Neighbour Compatibility and HUD | `stage-05` | [stages/stage-05-neighbour-compatibility](stages/stage-05-neighbour-compatibility/) | Complete |
 | 06 | Keyboard accessibility | `stage-06` | [stages/stage-06-keyboard-accessibility](stages/stage-06-keyboard-accessibility/) | Complete |
-| 07 | Visual polish and motion | — | — | Planned |
+| 07 | Visual polish and motion | `stage-07` | [stages/stage-07-visual-polish](stages/stage-07-visual-polish/) | Complete |
 
 ## How to revisit a stage
 

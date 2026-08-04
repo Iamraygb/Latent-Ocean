@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Latent Ocean</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <main id="ocean-scene">
+    <!--
+      Screen-fixed measurement panels. Reef Overlap measures position relative
+      to the reef. Neighbour Compatibility, arriving in Stage 05, measures the
+      shape similarity of distributions that overlap each other. The two
+      meanings are kept deliberately separate.
+    -->
+    <div id="hud" role="group" aria-label="Latent space measurements">
+      <section class="hud-panel">
+        <div class="hud-panel-head">
+          <h2 class="hud-label" id="reef-overlap-label">Reef Overlap</h2>
+          <p class="hud-value" id="reef-overlap-value">0%</p>
+        </div>
+        <div
+          class="hud-bar"
+          id="reef-overlap-bar"
+          role="progressbar"
+          aria-labelledby="reef-overlap-label"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuenow="0"
+          aria-valuetext="0 percent"
+        >
+          <div class="hud-bar-fill" id="reef-overlap-fill"></div>
+        </div>
+      </section>
+
+      <section class="hud-panel is-unevaluated" id="compatibility-panel">
+        <div class="hud-panel-head">
+          <h2 class="hud-label" id="compatibility-label">Neighbour Compatibility</h2>
+          <p class="hud-value" id="compatibility-value">No overlap</p>
+        </div>
+        <div
+          class="hud-bar"
+          id="compatibility-bar"
+          role="progressbar"
+          aria-labelledby="compatibility-label"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          aria-valuetext="No overlap"
+        >
+          <div class="hud-bar-fill" id="compatibility-fill"></div>
+        </div>
+      </section>
+    </div>
+
+    <!--
+      #latent-world holds the natural aspect ratio of ocean-background.png.
+      It letterboxes rather than crops, so the reef and every distance ring
+      stay visible at any window size. All cloud elements are positioned as
+      percentages of this box, which keeps their designed placement identical
+      across screens.
+    -->
+    <div id="latent-world">
+      <img
+        class="ocean-background"
+        src="../../assets/ocean-background.png"
+        alt="A two-dimensional ocean space with a central reef surrounded by concentric distance rings"
+      >
+      <!-- .latent-cloud elements are built from CONFIG in app.js -->
+    </div>
+
+    <!-- Referenced by every cloud via aria-describedby. -->
+    <p id="cloud-keyboard-help" class="visually-hidden">
+      Press the arrow keys to move this cloud through the latent space. Hold Shift
+      with an arrow key to move further in one step. The Reef Overlap and Neighbour
+      Compatibility measurements update as it moves.
+    </p>
+
+    <aside id="status-panel">
+      <h1>Latent Ocean</h1>
+      <p class="hint">Drag a cloud, or press Tab to select one and move it with the arrow keys.</p>
+      <p id="overlap-readout" aria-live="polite">No clouds are currently overlapping.</p>
+      <p class="disclosure">
+        Designed demonstration scores based on body shape. These values are set by
+        hand to illustrate the idea — the page does not analyse the images, and
+        nothing here comes from a trained model.
+      </p>
+    </aside>
+
+    <noscript>
+      <p class="noscript-message">
+        This interactive prototype needs JavaScript enabled. The ocean above is a
+        simplified two-dimensional latent space; with JavaScript on, four draggable
+        translucent circles appear, each representing the latent distribution of a
+        single fish image.
+      </p>
+    </noscript>
+  </main>
+
+  <script src="app.js"></script>
+</body>
+</html>
