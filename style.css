@@ -238,9 +238,13 @@ body.debug-reef #reef-zone::after {
    overlap each other. The two are deliberately kept distinct.
 --------------------------------------------------------------------------- */
 
-/* The whole top stack: the two measurement panels, with the explainer
-   directly beneath them. Sized to the panel row, so the explainer spans the
-   same width rather than floating at its own size. */
+/* The whole top stack: the two measurement panels, with the explainer directly
+   beneath them.
+
+   The stack is sized to the measurement row, and every child stretches to that
+   width. That is what keeps the explainer flush with the left edge of Reef
+   Overlap and the right edge of Neighbour Compatibility, rather than sizing
+   itself to its own text. */
 #hud-stack {
   position: fixed;
   top: 0.9rem;
@@ -261,6 +265,12 @@ body.debug-reef #reef-zone::after {
   flex-wrap: wrap;
   justify-content: center;
   gap: 0.75rem;
+}
+
+/* Both measurement panels share the row equally, so the pair always presents a
+   single clean outer edge for the explainer to align to. */
+.hud-panel {
+  flex: 1 1 0;
 }
 
 .hud-panel {
@@ -417,16 +427,6 @@ body.debug-reef #reef-zone::after {
   border: 0;
 }
 
-/* Permanent, deliberately unmissable: these scores are authored, not learned. */
-#status-panel .disclosure {
-  margin-top: 0.4rem;
-  padding-top: 0.4rem;
-  border-top: 1px solid rgba(200, 225, 255, 0.22);
-  font-size: 0.68rem;
-  line-height: 1.4;
-  color: rgba(220, 238, 250, 0.72);
-}
-
 .noscript-message {
   position: fixed;
   inset: auto 1rem 1rem 1rem;
@@ -444,9 +444,13 @@ body.debug-reef #reef-zone::after {
    tall enough to bury the upper clouds. Everything tightens so the stack fits
    in the letterbox area above the world rather than sitting on top of it. */
 @media (max-width: 40rem) {
+  /* A definite width rather than max-content. With max-content, each panel
+     resolved its own width independently and the three ended up progressively
+     wider than one another. */
   #hud-stack {
     top: 0.5rem;
     gap: 0.35rem;
+    width: calc(100vw - 1rem);
     max-width: calc(100vw - 1rem);
   }
 
@@ -456,7 +460,7 @@ body.debug-reef #reef-zone::after {
 
   .hud-panel {
     min-width: 0;
-    width: 100%;
+    flex: 1 1 100%;
     padding: 0.35rem 0.6rem 0.45rem;
   }
 
@@ -502,12 +506,6 @@ body.debug-reef #reef-zone::after {
     font-size: 0.64rem;
   }
 
-  #status-panel .disclosure {
-    margin-top: 0.3rem;
-    padding-top: 0.3rem;
-    font-size: 0.6rem;
-    line-height: 1.3;
-  }
 }
 
 /* Short viewports, chiefly a phone held in landscape. The world fills the full
@@ -538,17 +536,6 @@ body.debug-reef #reef-zone::after {
 
   #status-panel {
     padding: 0.28rem 0.55rem 0.32rem;
-  }
-
-  #status-panel .hint {
-    display: none;
-  }
-
-  #status-panel .disclosure {
-    margin-top: 0;
-    padding-top: 0;
-    border-top: 0;
-    font-size: 0.58rem;
   }
 
   .status-line {

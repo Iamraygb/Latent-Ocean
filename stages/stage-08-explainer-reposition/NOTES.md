@@ -9,6 +9,10 @@ The explainer moved from the bottom-left corner to sit directly beneath the two
 measurement panels, as a centred horizontal bar matching their combined width.
 This follows the supplied wireframe.
 
+Two follow-up corrections were then made on request, and are described in their
+own sections below: the always-visible disclosure paragraph was removed, and a
+width bug that made the three panels progressively wider was fixed.
+
 **Structure.** A new `#hud-stack` wraps the measurement row and the explainer in
 a single fixed, centred column. Because the stack is sized to the panel row, the
 explainer spans exactly the same width rather than floating at its own size.
@@ -83,6 +87,57 @@ interaction.
 | `aria-live` on the readout | polite, intact |
 | Horizontal page scrolling | none |
 | Console errors | none |
+
+## Follow-up 1 — the disclosure paragraph was removed
+
+The "Designed demonstration scores based on body shape…" paragraph no longer
+appears in the interface. It was judged unnecessary as a permanent fixture.
+
+**Where that statement now lives.** The brief requires that "the interface **or
+supporting explanation**" identify the scores as designed demonstration values.
+The interface no longer carries it, so the supporting explanation does:
+
+- `README.md` opens with a section headed "Important: this is a designed
+  demonstration", stating that nothing is produced by a trained model.
+- `CONFIG.similarity` in `app.js` is headed "Designed demonstration scores based
+  on body shape."
+
+The requirement is therefore still met, but it now rests entirely on the README.
+If the prototype is ever shown standing alone, without the repository alongside
+it, that statement should be reinstated somewhere in the interface.
+
+Removing the paragraph also shortened the panel to a single 37px line, which
+made the earlier landscape compromise unnecessary: **the keyboard hint is now
+visible at every screen size**, and the rule that hid it has been deleted.
+
+## Follow-up 2 — the panels were not the same width
+
+The explainer extended past both ends of the measurement row, and on narrow
+screens each of the three panels was progressively wider than the one above it.
+
+Cause: `#hud-stack` used `width: max-content`, and on narrow screens the panels
+carried `width: 100%`. A percentage width inside a `max-content` container is
+circular, so each panel resolved its own width independently.
+
+Fix: below 40rem the stack takes a definite `width: calc(100vw - 1rem)`, and
+panels use `flex: 1 1 100%`. At all widths `.hud-panel` uses `flex: 1 1 0`, so
+the two measurement panels share the row equally and present one clean outer
+edge for the explainer to align to.
+
+Measured afterwards:
+
+| | Left edge | Right edge |
+|---|---|---|
+| Reef Overlap, 1440px | 347.17 | 713.99 |
+| Neighbour Compatibility, 1440px | 725.99 | 1092.83 |
+| Explainer, 1440px | **347.17** | **1092.83** |
+
+Flush with the left edge of Reef Overlap and the right edge of Neighbour
+Compatibility, extending past neither. At 390px all three panels measured
+identically at 8 to 382.
+
+The shorter panel improved the landscape case again: the eel now sits **9.2%**
+covered, down from 24.4%, and from 100% before any of this work.
 
 ## Note on scope
 
