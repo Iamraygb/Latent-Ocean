@@ -22,6 +22,7 @@ any similarity values are authored by hand to illustrate the concepts.
 | 10A | Reveal Mode, step 1: encoded distributions | `stage-10a` | [stages/stage-10a-reveal-step1](stages/stage-10a-reveal-step1/) | Complete |
 | 10B | Reveal Mode, step 2: the prior | `stage-10b` | [stages/stage-10b-reveal-step2](stages/stage-10b-reveal-step2/) | Complete |
 | 10C | Reveal Mode, step 3: KL divergence | `stage-10c` | [stages/stage-10c-kl-divergence](stages/stage-10c-kl-divergence/) | Complete |
+| 10D | Reveal Mode, step 4: Beta weight | `stage-10d` | [stages/stage-10d-beta-weight](stages/stage-10d-beta-weight/) | Complete |
 | — | Custom Animate UI graphics | — | — | Deferred |
 
 ## How to revisit a stage
