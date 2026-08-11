@@ -289,7 +289,7 @@ body.reveal-active.hover-kl .latent-cloud.overlaps-reef .cloud-region {
 
    Screen-fixed measurement panels along the top.
 
-   Reef Overlap measures position relative to the reef. Neighbour Compatibility,
+   Reef Overlap measures position relative to the reef. Neighbor Compatibility,
    arriving in Stage 05, measures the shape similarity of distributions that
    overlap each other. The two are deliberately kept distinct.
 --------------------------------------------------------------------------- */
@@ -369,6 +369,15 @@ body.hover-kl #reef-overlap-panel {
   color: rgba(220, 238, 250, 0.55);
 }
 
+/* An invitation rather than a description, so it reads apart from the
+   other de-emphasized sub-labels — italic and tinted toward the score
+   panel's own accent colour. */
+.hud-prompt {
+  margin-bottom: 0.45rem;
+  font-style: italic;
+  color: rgba(168, 236, 200, 0.8);
+}
+
 .hud-value {
   margin: 0;
   font-size: 0.78rem;
@@ -403,6 +412,91 @@ body.hover-kl #reef-overlap-panel {
 
 .hud-panel--score .hud-value {
   color: #a8ecc8;
+}
+
+/* ---------------------------------------------------------------------------
+   Pairwise incompatibility heatmap
+
+   Upper-triangular grid of the six fixed pair scores underlying Exclusivity,
+   nested inside the Exclusivity panel itself. Built in app.js from
+   CONFIG.clouds/CONFIG.similarity; see buildIncompatibilityHeatmap.
+--------------------------------------------------------------------------- */
+
+.heatmap-label {
+  margin-top: 0.5rem;
+  text-align: center;
+}
+
+/* Half the width (and, via aspect-ratio on the cells, half the height) of a
+   full-width grid — supporting detail, not another headline measurement, so
+   it stays visually subordinate to the bar above it. */
+.heatmap-grid {
+  display: grid;
+  grid-template-columns: repeat(var(--heatmap-columns, 4), 1fr);
+  gap: 0.18rem;
+  width: 50%;
+  margin: 0.35rem auto 0;
+}
+
+.heatmap-cell {
+  aspect-ratio: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.2rem;
+}
+
+.heatmap-corner,
+.heatmap-blank {
+  background: transparent;
+}
+
+.heatmap-header {
+  background: rgba(255, 255, 255, 0.06);
+}
+
+.heatmap-icon-fish {
+  width: 82%;
+  height: 82%;
+  object-fit: contain;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 20, 45, 0.5));
+}
+
+/* Swapped in for the fish icon while Reveal Mode is open, matching how the
+   fish themselves are replaced by bare circles — same --cloud-rgb, so a
+   header always matches its cloud's colour on scene. */
+.heatmap-icon-circle {
+  display: none;
+  width: 62%;
+  height: 62%;
+  border-radius: 50%;
+  background: rgba(var(--cloud-rgb), 0.55);
+  border: 2px solid rgba(var(--cloud-rgb), 0.95);
+}
+
+body.reveal-active .heatmap-icon-fish {
+  display: none;
+}
+
+body.reveal-active .heatmap-icon-circle {
+  display: block;
+}
+
+.heatmap-data {
+  cursor: default;
+  transition: box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+/* A pair currently overlapping — i.e. actually contributing to Exclusivity
+   right now — rather than a colour change, which would be read as a
+   different incompatibility value instead of an interaction state. */
+.heatmap-data.is-active {
+  filter: brightness(1.25) saturate(1.2);
+  box-shadow: 0 0 0 2px #ffe6a0, 0 0 8px rgba(255, 230, 160, 0.6);
 }
 
 /* ---------------------------------------------------------------------------

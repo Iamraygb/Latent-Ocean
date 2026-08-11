@@ -13,7 +13,7 @@
 
       Safety (Reef Overlap)         — area of the clouds that lies inside the
                                        reef, as a fraction of total cloud area.
-      Exclusivity (Neighbour        — the inverse: area of incompatible
+      Exclusivity (Neighbor         — the inverse: area of incompatible
         Incompatibility)              cloud-to-cloud overlap, as a fraction of
                                        the worst case for these cloud sizes.
       Reef Harmony                  — a weighted combination of the two above,
@@ -49,10 +49,7 @@
 
       <section class="hud-panel" id="compatibility-panel">
         <div class="hud-panel-head">
-          <h2 class="hud-label" id="compatibility-label">
-            Exclusivity
-            <span class="hud-label-sub">Neighbour incompatibility</span>
-          </h2>
+          <h2 class="hud-label" id="compatibility-label">Exclusivity</h2>
           <p class="hud-value" id="compatibility-value">100%</p>
         </div>
         <div
@@ -60,6 +57,7 @@
           id="compatibility-bar"
           role="progressbar"
           aria-labelledby="compatibility-label"
+          aria-describedby="incompatibility-heatmap-label"
           aria-valuemin="0"
           aria-valuemax="100"
           aria-valuenow="100"
@@ -67,6 +65,17 @@
         >
           <div class="hud-bar-fill" id="compatibility-fill"></div>
         </div>
+
+        <!--
+          Breaks Exclusivity down into its six pairwise incompatibility scores
+          (1 - similarity), upper-triangular since the diagonal — a fish
+          against itself — is not meaningful. Built from CONFIG.clouds and
+          CONFIG.similarity in app.js; a cell lights up (see .heatmap-cell.is-active
+          in style.css) whenever that pair currently overlaps, i.e. whenever it
+          is actually contributing to Exclusivity right now.
+        -->
+        <p class="hud-label-sub heatmap-label" id="incompatibility-heatmap-label">Neighbor incompatibility</p>
+        <div class="heatmap-grid" id="incompatibility-heatmap"></div>
       </section>
 
       <section class="hud-panel hud-panel--score" id="configuration-panel">
@@ -74,6 +83,7 @@
           <h2 class="hud-label" id="configuration-label">Reef Harmony</h2>
           <p class="hud-value" id="configuration-value">0%</p>
         </div>
+        <p class="hud-label-sub hud-prompt">Maximize this!</p>
         <div
           class="hud-bar"
           id="configuration-bar"

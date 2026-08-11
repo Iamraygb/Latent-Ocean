@@ -149,18 +149,25 @@ const CONFIG = {
      shape; the eel is the most visibly different. Scores reflect body shape,
      not colour.
 
+     Deliberately six distinct values rather than a few repeated tiers, so
+     the incompatibility heatmap reads as a genuine gradient. Round-orange
+     and oval-teal are near-identical in body shape (highest score); narrow
+     shapes (narrow-blue, eel-purple) are somewhat closer to each other than
+     either is to the round shapes; round-orange and eel-purple are the two
+     furthest apart on the spectrum (lowest score).
+
      One entry per unordered pair, so six in total for four images. Order
      within a key does not matter — lookup tries both directions.
 
      Stored as decimals from 0 to 1. The HUD shows the equivalent percentage.
      ========================================================================= */
   similarity: {
-    'round-orange|oval-teal':   0.85,
-    'round-orange|narrow-blue': 0.55,
-    'oval-teal|narrow-blue':    0.55,
-    'narrow-blue|eel-purple':   0.55,
-    'round-orange|eel-purple':  0.15,
-    'oval-teal|eel-purple':     0.15
+    'round-orange|oval-teal':   0.92,
+    'oval-teal|narrow-blue':    0.62,
+    'round-orange|narrow-blue': 0.38,
+    'narrow-blue|eel-purple':   0.28,
+    'oval-teal|eel-purple':     0.12,
+    'round-orange|eel-purple':  0.04
   },
 
   /* Starting position of the Reef Penalty slider, from 0 to 1. The slider is
@@ -178,10 +185,10 @@ const world = document.getElementById('latent-world');
 const reefOverlapValue = document.getElementById('reef-overlap-value');
 const reefOverlapBar = document.getElementById('reef-overlap-bar');
 const reefOverlapFill = document.getElementById('reef-overlap-fill');
-const compatibilityPanel = document.getElementById('compatibility-panel');
 const compatibilityValue = document.getElementById('compatibility-value');
 const compatibilityBar = document.getElementById('compatibility-bar');
 const compatibilityFill = document.getElementById('compatibility-fill');
+const incompatibilityHeatmap = document.getElementById('incompatibility-heatmap');
 const configurationValue = document.getElementById('configuration-value');
 const configurationBar = document.getElementById('configuration-bar');
 const configurationFill = document.getElementById('configuration-fill');
@@ -195,6 +202,40 @@ function applyWorldRatio() {
   root.style.setProperty('--world-h', CONFIG.world.aspectHeight);
 }
 
+/**
+ * A random centre for a cloud of the given diameter, drawn uniformly from a
+ * square centred on the reef with side length 3x the reef radius.
+ *
+ * Scattering across the whole world let clouds land near the edges, behind
+ * the HUD panels or the Reveal Mode panel. Keeping the square close around
+ * the reef avoids that while still leaving room to drag a cloud in or out
+ * of the reef, past its neighbours, or off to a side.
+ *
+ * Both the reef radius and the diameter are percentages of world WIDTH, so
+ * the vertical extent of the square (and the clamp margin) is scaled by the
+ * world's aspect ratio to represent the same physical distance as the
+ * horizontal one — otherwise the square, and a cloud's own radius, would be
+ * squashed or stretched vertically relative to how they render.
+ */
+function randomCloudPosition(diameterPercent) {
+  const aspectRatio = CONFIG.world.aspectWidth / CONFIG.world.aspectHeight;
+  const radiusXPercent = diameterPercent / 2;
+  const radiusYPercent = radiusXPercent * aspectRatio;
+
+  const halfSideXPercent = 1.5 * CONFIG.reef.radius;
+  const halfSideYPercent = halfSideXPercent * aspectRatio;
+
+  const rawX = CONFIG.reef.centerX + (Math.random() * 2 - 1) * halfSideXPercent;
+  const rawY = CONFIG.reef.centerY + (Math.random() * 2 - 1) * halfSideYPercent;
+
+  // A safety clamp, not the primary bound — the square is already well
+  // inside the world for the current reef and cloud sizes.
+  return {
+    x: clamp(rawX, radiusXPercent, 100 - radiusXPercent),
+    y: clamp(rawY, radiusYPercent, 100 - radiusYPercent)
+  };
+}
+
 /** Builds one .latent-cloud: a parent holding the circle and its fish image. */
 function createCloud(cloudConfig) {
   const cloud = document.createElement('div');
@@ -203,8 +244,12 @@ function createCloud(cloudConfig) {
   cloud.dataset.name = cloudConfig.name;
   cloud.dataset.cloudId = cloudConfig.id;
 
-  cloud.style.setProperty('--x', `${cloudConfig.x}%`);
-  cloud.style.setProperty('--y', `${cloudConfig.y}%`);
+  // Randomized on every load rather than the designed CONFIG.clouds x/y —
+  // the reader drags clouds into place themselves instead of starting from
+  // an authored arrangement.
+  const position = randomCloudPosition(cloudConfig.diameter);
+  cloud.style.setProperty('--x', `${position.x}%`);
+  cloud.style.setProperty('--y', `${position.y}%`);
   cloud.style.setProperty('--size', `${cloudConfig.diameter}%`);
   cloud.style.setProperty('--cloud-rgb', cloudConfig.rgb);
 
@@ -424,7 +469,7 @@ function computeReefOverlap(cloudGeometries, reefGeometry) {
 
 
 /* ===========================================================================
-   METRIC 2 — EXCLUSIVITY (Neighbour Incompatibility)
+   METRIC 2 — EXCLUSIVITY (Neighbor Incompatibility)
 
    Like Reef Overlap, this is a plain area fraction — no averaging, no
    discrete jump the instant two circles touch. It reads 100% at rest (no
@@ -458,6 +503,113 @@ function getSimilarityScore(idA, idB) {
 }
 
 const warnedMissingPairs = new Set();
+
+/* ---------------------------------------------------------------------------
+   Pairwise incompatibility heatmap
+
+   A breakdown of Exclusivity into its six underlying pair scores. Upper
+   triangular only — a fish compared with itself is not a meaningful cell —
+   laid out as an (n-1) x (n-1) grid with column headers for clouds 1..n-1 and
+   row headers for clouds 0..n-2, so cell (row, col) exists only when
+   row < col + 1, i.e. row <= col.
+
+   The six values are fixed at load (they come from CONFIG.similarity, not
+   from cloud position), so the grid is built once. Only which cells are
+   "active" — currently contributing to Exclusivity, i.e. that pair's clouds
+   currently overlap — changes as clouds move, via .is-active toggled in
+   updateMetrics.
+--------------------------------------------------------------------------- */
+
+/** Maps "idA|idB" to that pair's data cell, filled in by buildIncompatibilityHeatmap. */
+const heatmapCellsByPairKey = new Map();
+
+/** A single hue (red), varying only in saturation and lightness — pale pink
+ *  for low incompatibility up to deep red for high — kept monochrome so it
+ *  reads as one continuous scale rather than implying a category change,
+ *  and stays distinct from every cloud's own colour and from the gold
+ *  accent used for the .is-active highlight. */
+function incompatibilityColor(incompatibility) {
+  const t = clamp(incompatibility, 0, 1);
+  const hue = 6;
+  const saturation = 55 + t * 20;
+  const lightness = 82 - t * 42;
+  return `hsl(${hue}, ${saturation.toFixed(0)}%, ${lightness.toFixed(0)}%)`;
+}
+
+/** One header cell: a fish icon normally, swapped for a plain colour circle
+ *  matching that cloud's --cloud-rgb while Reveal Mode is open (see
+ *  body.reveal-active .heatmap-icon-fish / .heatmap-icon-circle in style.css),
+ *  echoing how the fish themselves are replaced by bare circles. */
+function buildHeatmapHeaderCell(cloudConfig) {
+  const cell = document.createElement('div');
+  cell.className = 'heatmap-cell heatmap-header';
+  cell.style.setProperty('--cloud-rgb', cloudConfig.rgb);
+
+  const icon = document.createElement('img');
+  icon.className = 'heatmap-icon-fish';
+  icon.src = cloudConfig.asset;
+  icon.alt = cloudConfig.name;
+  icon.draggable = false;
+
+  const circle = document.createElement('span');
+  circle.className = 'heatmap-icon-circle';
+  circle.setAttribute('aria-hidden', 'true');
+
+  cell.append(icon, circle);
+  return cell;
+}
+
+/** One data cell: the fixed incompatibility score for cloudA x cloudB, shown
+ *  only as colour — the exact percentage is available on hover/focus via the
+ *  title, keeping the grid itself a quick-glance visual rather than another
+ *  set of numbers to read. */
+function buildHeatmapDataCell(cloudA, cloudB) {
+  const similarity = getSimilarityScore(cloudA.id, cloudB.id);
+  const incompatibility = similarity === null ? 0 : 1 - similarity;
+  const percent = Math.round(incompatibility * 100);
+
+  const cell = document.createElement('div');
+  cell.className = 'heatmap-cell heatmap-data';
+  cell.style.backgroundColor = incompatibilityColor(incompatibility);
+  cell.title = `${cloudA.name} × ${cloudB.name}: ${percent}% incompatible`;
+
+  heatmapCellsByPairKey.set(`${cloudA.id}|${cloudB.id}`, cell);
+  return cell;
+}
+
+function buildIncompatibilityHeatmap() {
+  const clouds = CONFIG.clouds;
+  const n = clouds.length;
+  const fragment = document.createDocumentFragment();
+
+  incompatibilityHeatmap.style.setProperty('--heatmap-columns', String(n));
+
+  const corner = document.createElement('div');
+  corner.className = 'heatmap-cell heatmap-corner';
+  corner.setAttribute('aria-hidden', 'true');
+  fragment.append(corner);
+
+  for (let col = 1; col < n; col++) {
+    fragment.append(buildHeatmapHeaderCell(clouds[col]));
+  }
+
+  for (let row = 0; row < n - 1; row++) {
+    fragment.append(buildHeatmapHeaderCell(clouds[row]));
+
+    for (let col = 1; col < n; col++) {
+      if (row <= col - 1) {
+        fragment.append(buildHeatmapDataCell(clouds[row], clouds[col]));
+      } else {
+        const blank = document.createElement('div');
+        blank.className = 'heatmap-cell heatmap-blank';
+        blank.setAttribute('aria-hidden', 'true');
+        fragment.append(blank);
+      }
+    }
+  }
+
+  incompatibilityHeatmap.append(fragment);
+}
 
 /**
  * Every unordered cloud pair, measured once.
@@ -572,7 +724,7 @@ function calculateHarmonyScore(safetyPercent, exclusivityPercent, beta) {
    Overlap state
 
    Stage 02 keeps the simple "which clouds touch" highlight from Stage 01.
-   The Reef Overlap and Neighbour Compatibility metrics arrive in Stages 04
+   The Reef Overlap and Neighbor Compatibility metrics arrive in Stages 04
    and 05.
    =========================================================================== */
 
@@ -624,7 +776,7 @@ function updateMetrics() {
   // Two area-based metrics, computed independently, then combined into the
   // third:
   //   Safety      (Reef Overlap)          — cloud area inside the reef
-  //   Exclusivity (Neighbour Incompatibility) — inverse of incompatible
+  //   Exclusivity (Neighbor Incompatibility) — inverse of incompatible
   //                                             cloud-to-cloud overlap area
   //   Reef Harmony Score                  — the two above, weighted by beta
   const reefGeometry = getReefGeometry();
@@ -638,6 +790,15 @@ function updateMetrics() {
     exclusivityPercent,
     getReefPenaltyBeta()
   ));
+
+  // Highlights each heatmap cell whose pair is actually contributing to
+  // Exclusivity right now.
+  heatmapCellsByPairKey.forEach((cell) => cell.classList.remove('is-active'));
+  pairs.forEach((pair) => {
+    if (pair.overlapArea <= 0) return;
+    const cell = heatmapCellsByPairKey.get(`${pair.a}|${pair.b}`);
+    if (cell) cell.classList.add('is-active');
+  });
 
   clouds.forEach((cloud) => cloud.classList.remove('is-overlapping', 'overlaps-reef'));
 
@@ -920,6 +1081,7 @@ function initReefDebug() {
 
 function init() {
   buildScene();
+  buildIncompatibilityHeatmap();
   reefZone = document.getElementById('reef-zone');
   clouds = Array.from(document.querySelectorAll('.latent-cloud'));
   clouds.forEach((cloud) => {
