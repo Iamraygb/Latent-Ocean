@@ -325,8 +325,8 @@ body.reveal-active.hover-kl .latent-cloud.overlaps-reef .cloud-region {
    so a single panel can be brought back to full strength by the term
    highlights below without the others following it. */
 body.reveal-active .hud-panel {
-  opacity: 0.35;
-  filter: saturate(0.5);
+  opacity: 0.6;
+  filter: saturate(0.75);
 }
 
 body.hover-harmony #configuration-panel,
@@ -553,8 +553,8 @@ body.reveal-active .heatmap-icon-circle {
 }
 
 body.reveal-active .reef-penalty {
-  opacity: 0.35;
-  filter: saturate(0.5);
+  opacity: 0.6;
+  filter: saturate(0.75);
 }
 
 body.hover-beta .reef-penalty {
