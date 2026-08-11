@@ -19,7 +19,8 @@ any similarity values are authored by hand to illustrate the concepts.
 | 07 | Visual polish and motion | `stage-07` | [stages/stage-07-visual-polish](stages/stage-07-visual-polish/) | Complete |
 | 08 | Explainer panel repositioned | `stage-08` | [stages/stage-08-explainer-reposition](stages/stage-08-explainer-reposition/) | Complete |
 | 09 | Configuration Score and Reef Penalty | `stage-09` | [stages/stage-09-configuration-score](stages/stage-09-configuration-score/) | Complete |
-| 10 | Custom Animate UI graphics | — | — | Planned |
+| 10A | Reveal Mode, step 1: encoded distributions | `stage-10a` | [stages/stage-10a-reveal-step1](stages/stage-10a-reveal-step1/) | Complete |
+| — | Custom Animate UI graphics | — | — | Deferred |
 
 ## How to revisit a stage
 
