@@ -20,6 +20,7 @@ any similarity values are authored by hand to illustrate the concepts.
 | 08 | Explainer panel repositioned | `stage-08` | [stages/stage-08-explainer-reposition](stages/stage-08-explainer-reposition/) | Complete |
 | 09 | Configuration Score and Reef Penalty | `stage-09` | [stages/stage-09-configuration-score](stages/stage-09-configuration-score/) | Complete |
 | 10A | Reveal Mode, step 1: encoded distributions | `stage-10a` | [stages/stage-10a-reveal-step1](stages/stage-10a-reveal-step1/) | Complete |
+| 10B | Reveal Mode, step 2: the prior | `stage-10b` | [stages/stage-10b-reveal-step2](stages/stage-10b-reveal-step2/) | Complete |
 | — | Custom Animate UI graphics | — | — | Deferred |
 
 ## How to revisit a stage
