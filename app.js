@@ -171,45 +171,10 @@ const CONFIG = {
 
 
 /* ===========================================================================
-   EXPLAINER CONFIG — the latent coordinate convention
-
-   Reveal Mode reads the scene as a simplified two-dimensional latent space.
-
-   The reef centre is treated as the latent origin (0, 0) and one reef radius
-   as one latent unit. That is a coordinate convention for this simulator only;
-   at this step the reef is NOT being described as the prior distribution.
-
-   Each cloud is read as the approximate posterior for one representative
-   input image:
-
-       q_phi(z|x) = N(mu_phi(x), sigma_phi^2(x) I)
-
-   The complete cloud is the distribution. Its centre is the mean, its radius
-   is one standard deviation, and the identity matrix means equal spread in
-   both displayed dimensions. The circle is a one-standard-deviation contour,
-   not a hard edge — the Gaussian continues past it.
-   =========================================================================== */
-
-const EXPLAINER = {
-  latentDimensions: 2,
-  priorMean: { x: 0, y: 0 },
-  /* The prior's spread in each displayed dimension. Kept separate from
-     cloudContourStandardDeviations below, which is about how many standard
-     deviations of the CLOUD its drawn circle represents — two different
-     meanings that both happen to equal 1. */
-  priorStandardDeviation: 1,
-  latentUnitsPerReefRadius: 1,
-  cloudContourStandardDeviations: 1,
-  posteriorType: 'isotropic-gaussian'
-};
-
-
-/* ===========================================================================
    Scene construction
    =========================================================================== */
 
 const world = document.getElementById('latent-world');
-const overlapReadout = document.getElementById('overlap-readout');
 const reefOverlapValue = document.getElementById('reef-overlap-value');
 const reefOverlapBar = document.getElementById('reef-overlap-bar');
 const reefOverlapFill = document.getElementById('reef-overlap-fill');
@@ -221,7 +186,6 @@ const configurationValue = document.getElementById('configuration-value');
 const configurationBar = document.getElementById('configuration-bar');
 const configurationFill = document.getElementById('configuration-fill');
 const reefPenaltyInput = document.getElementById('reef-penalty-input');
-const reefPenaltyValue = document.getElementById('reef-penalty-value');
 let reefZone = null;
 
 /** Applies the world's aspect ratio from CONFIG so it is defined in one place. */
@@ -300,58 +264,12 @@ function createReefZone() {
   return reef;
 }
 
-/**
- * Step 2's prior annotations, anchored to the same CONFIG.reef values the reef
- * zone uses, so they cannot drift from the mathematical reef centre.
- *
- * All three are inert decoration for reading, never interactive, so none of
- * them can intercept a drag.
- *
- * Deliberately independent of the D debug outline: the debug styles target
- * #reef-zone, and these are separate elements, so toggling debug cannot remove
- * the Step 2 scientific annotations.
- */
-function createPriorAnnotations() {
-  const fragment = document.createDocumentFragment();
-  const atReefCentre = (element) => {
-    element.style.setProperty('--x', `${CONFIG.reef.centerX}%`);
-    element.style.setProperty('--y', `${CONFIG.reef.centerY}%`);
-    element.setAttribute('aria-hidden', 'true');
-  };
-
-  // A density fade that continues well past the reef edge, so the artwork is
-  // not read as the prior stopping at the reef.
-  const density = document.createElement('div');
-  density.id = 'prior-density';
-  atReefCentre(density);
-  fragment.append(density);
-
-  // Drawn from the reef centre out to the selected cloud's centre. Length and
-  // angle are set in updateDistanceLine from the live geometry.
-  const line = document.createElement('div');
-  line.id = 'distance-line';
-  line.innerHTML = '<span class="distance-line-label"><em>d</em></span>';
-  atReefCentre(line);
-  fragment.append(line);
-
-  // A ring with a centre dot: deliberately a different shape from the encoded
-  // mean's cross, so the two are distinguishable without colour.
-  const priorMean = document.createElement('div');
-  priorMean.id = 'prior-mean-marker';
-  priorMean.innerHTML = '<span class="prior-mean-label">Prior mean (0,0)</span>';
-  atReefCentre(priorMean);
-  fragment.append(priorMean);
-
-  return fragment;
-}
-
 function buildScene() {
   applyWorldRatio();
   const fragment = document.createDocumentFragment();
 
   // Reef first, so clouds sit above it in paint order.
   fragment.append(createReefZone());
-  fragment.append(createPriorAnnotations());
   CONFIG.clouds.forEach((cloudConfig, index) => {
     const cloud = createCloud(cloudConfig);
     applyFloatTiming(cloud, index);
@@ -427,147 +345,6 @@ function circlesOverlap(a, b) {
   return Math.sqrt(dx * dx + dy * dy) < a.radius + b.radius;
 }
 
-
-/* ===========================================================================
-   Latent coordinates
-
-   Pure functions. They take rendered pixel geometry but only ever divide one
-   pixel measurement by another, so every result is a ratio and is unaffected
-   by screen size. Percentages are deliberately avoided here: the percentage
-   system is anisotropic (x is a share of width, y of height), so "one reef
-   radius up" would not equal "one reef radius right".
-   =========================================================================== */
-
-/** Pixels of world that make up one latent unit. */
-function worldUnitsPerLatentUnit(reefGeometry) {
-  return reefGeometry.radius / EXPLAINER.latentUnitsPerReefRadius;
-}
-
-/**
- * Converts a point in world pixels to latent coordinates.
- * Screen y grows downward, so it is inverted: moving a cloud up must raise mu2.
- */
-function worldPointToLatent(pointX, pointY, reefGeometry) {
-  const unit = worldUnitsPerLatentUnit(reefGeometry);
-  return {
-    x: (pointX - reefGeometry.centerX) / unit,
-    y: (reefGeometry.centerY - pointY) / unit
-  };
-}
-
-/**
- * The posterior parameters this cloud currently stands for.
- *
- * sigma is one shared standard deviation, because the teaching model is
- * isotropic. It changes only if the cloud is resized, never when it is moved.
- *
- * @returns {{mu:{x:number,y:number}, sigma:number}} full precision
- */
-function calculatePosteriorParameters(cloudGeometry, reefGeometry) {
-  const unit = worldUnitsPerLatentUnit(reefGeometry);
-  return {
-    mu: worldPointToLatent(cloudGeometry.centerX, cloudGeometry.centerY, reefGeometry),
-    sigma: cloudGeometry.radius / (unit * EXPLAINER.cloudContourStandardDeviations)
-  };
-}
-
-/**
- * Radial distance in latent space between an encoded mean and the prior mean.
- *
- *     d = sqrt((mu1 - muPrior1)^2 + (mu2 - muPrior2)^2)
- *
- * With the configured prior centred at the origin this reduces to
- * sqrt(mu1^2 + mu2^2).
- *
- * This is the LOCATION part of prior mismatch only. It is not KL divergence,
- * not total prior mismatch, not a probability and not a percentage — the
- * complete measure also depends on the encoded spread sigma, which Step 3
- * will combine with this.
- *
- * Takes latent values, never pixels.
- *
- * @param {{x:number, y:number}} mu the encoded mean, full precision
- * @returns {number} distance in latent units
- */
-function calculateDistanceFromPriorMean(mu) {
-  return Math.hypot(mu.x - EXPLAINER.priorMean.x, mu.y - EXPLAINER.priorMean.y);
-}
-
-/* ===========================================================================
-   KL DIVERGENCE — Explainer Step 3
-
-   How far the selected encoded distribution is from the prior, in the direction
-
-       D_KL( q_phi(z|x) || p(z) )
-
-   For the configured two-dimensional isotropic posterior against a standard
-   normal prior it separates into two independent contributions:
-
-       location mismatch = 1/2 (mu1^2 + mu2^2)   =  1/2 d^2
-       spread mismatch   = 1/2 k (s^2 - 1 - ln s^2),  k = latentDimensions
-       total             = location + spread
-
-   With k = 2 the spread term reduces to s^2 - 1 - ln(s^2), and the full
-   expanded form is
-
-       D_KL = 1/2 [ mu1^2 + mu2^2 + 2( s^2 - 1 - ln s^2 ) ]
-
-   Natural logarithm throughout, so the result is in nats.
-
-   The value is non-negative, and reaches zero only when mu = (0,0) AND s = 1.
-   A cloud parked exactly on the reef can still score above zero, which is
-   precisely why distance alone was never the complete mismatch.
-
-   This is NOT a percentage, a probability, a symmetric geometric distance,
-   reconstruction loss, or the complete VAE objective. Beta does not enter it.
-   =========================================================================== */
-
-/* Analytically the spread term cannot be negative, but floating point can land
-   a hair below zero right at sigma = 1. Snap only inside this tolerance —
-   never broad-clamp, which would hide a genuine error. */
-const KL_ZERO_TOLERANCE = 1e-12;
-
-/**
- * @param {{x:number, y:number}} mu full-precision encoded mean
- * @param {number} sigma full-precision encoded spread, must be > 0
- * @returns {{locationMismatch:number, spreadMismatch:number, total:number,
- *            units:string}|null} null when sigma is invalid
- */
-function calculateKLComponents(mu, sigma) {
-  if (!Number.isFinite(sigma) || sigma <= 0) {
-    console.warn(`Latent Ocean: KL needs a positive spread, received ${sigma}.`);
-    return null;
-  }
-
-  const locationMismatch = 0.5 * (mu.x * mu.x + mu.y * mu.y);
-
-  const variance = sigma * sigma;
-  let spreadMismatch =
-    0.5 * EXPLAINER.latentDimensions * (variance - 1 - Math.log(variance));
-  if (spreadMismatch < 0 && spreadMismatch > -KL_ZERO_TOLERANCE) spreadMismatch = 0;
-
-  return {
-    locationMismatch,
-    spreadMismatch,
-    total: locationMismatch + spreadMismatch,
-    units: 'nats'
-  };
-}
-
-/** Rounds for display only. Callers keep the full-precision values. */
-function formatPosteriorParameters(parameters) {
-  // Avoids showing "-0.00" when a value rounds to zero from below.
-  const fixed = (value) => {
-    const text = value.toFixed(2);
-    return text === '-0.00' ? '0.00' : text;
-  };
-  return {
-    muX: fixed(parameters.mu.x),
-    muY: fixed(parameters.mu.y),
-    mu: `(${fixed(parameters.mu.x)}, ${fixed(parameters.mu.y)})`,
-    sigma: fixed(parameters.sigma)
-  };
-}
 
 /**
  * Area of the lens where two circles overlap, in square pixels.
@@ -647,26 +424,29 @@ function computeReefOverlap(cloudGeometries, reefGeometry) {
 
 
 /* ===========================================================================
-   METRIC 2 — NEIGHBOUR COMPATIBILITY
+   METRIC 2 — EXCLUSIVITY (Neighbour Incompatibility)
 
-   The shape-similarity quality of the clouds that currently overlap each other.
-   This is NOT a second measurement of how much they overlap.
+   Like Reef Overlap, this is a plain area fraction — no averaging, no
+   discrete jump the instant two circles touch. It reads 100% at rest (no
+   incompatible overlap at all) and falls continuously as incompatible area
+   grows, reaching 0% only in the worst-case arrangement for these cloud
+   sizes.
 
-       Neighbour Compatibility = sum of (pair overlap area x pair score)
-                               / sum of pair overlap areas
+       pairConflict   = overlapArea x (1 - similarity)
+       actualConflict = sum of pairConflict over all six pairs
+       maxConflict    = sum of min(areaA, areaB) x (1 - similarity), all six
+       I              = clamp(actualConflict / maxConflict, 0, 1)
 
-   An area-weighted average: a pair overlapping more heavily pulls the result
-   further toward its own score.
+       Exclusivity = 100 x (1 - I)
 
-   Only cloud-to-cloud overlap counts. Overlap with the reef contributes
-   nothing here — that is Reef Overlap's job, and the two are kept separate.
+   Two clouds overlapping is not automatically bad. Overlapping clouds of
+   *different body shapes* is what costs, which is why conflict is weighted by
+   (1 - similarity) rather than by area alone.
 
-   All six pairs are considered; those with zero intersection are excluded
-   entirely rather than counted as zero, which would drag the average down and
-   misrepresent the pairs that genuinely overlap.
-
-   Returns null when no pair overlaps, so the interface can say NO OVERLAP.
-   Null is used rather than 0 because 0 is itself a legitimate reading.
+   The denominator counts all six pairs whether or not they currently overlap,
+   so the scale is fixed by the cloud sizes rather than drifting as clouds are
+   moved apart. Overlap with the reef never enters this calculation — that is
+   Safety's job, and the two are kept separate.
    =========================================================================== */
 
 /** Looks up a designed score for an unordered pair, trying both key orders. */
@@ -682,11 +462,10 @@ const warnedMissingPairs = new Set();
 /**
  * Every unordered cloud pair, measured once.
  *
- * Shared by Neighbour Compatibility and the Configuration Score so the six-pair
- * comparison is not duplicated. Pairs with no overlap are still returned, with
- * an overlapArea of 0, because the Configuration Score's denominator needs all
- * six regardless of whether they currently touch. Compatibility filters them
- * out itself.
+ * Shared by Exclusivity and the Reef Harmony Score so the six-pair comparison
+ * is not duplicated. Pairs with no overlap are still returned, with an
+ * overlapArea of 0, because both metrics' denominators need all six
+ * regardless of whether they currently touch.
  *
  * Pairs with no configured score are omitted entirely and warned about once,
  * rather than being given an invented value.
@@ -725,58 +504,6 @@ function getPairOverlaps(measured) {
   return pairs;
 }
 
-/**
- * @param {Array} pairs from getPairOverlaps
- * @returns {{percent:number, pairs:Array}|null} null when nothing overlaps
- */
-function computeNeighbourCompatibility(pairs) {
-  let weightedTotal = 0;
-  let areaTotal = 0;
-  const contributing = [];
-
-  // Only pairs that genuinely overlap. Counting a non-overlapping pair as zero
-  // would drag the average down and misrepresent the pairs that do touch.
-  pairs.forEach((pair) => {
-    if (pair.overlapArea <= 0) return;
-    weightedTotal += pair.overlapArea * pair.similarity;
-    areaTotal += pair.overlapArea;
-    contributing.push({
-      a: pair.a, b: pair.b, overlapArea: pair.overlapArea, score: pair.similarity
-    });
-  });
-
-  if (areaTotal === 0) return null;
-  return { percent: (weightedTotal / areaTotal) * 100, pairs: contributing };
-}
-
-
-/* ===========================================================================
-   METRIC 3 — CONFIGURATION SCORE
-
-   A designed educational score for the whole four-cloud arrangement. It is NOT
-   the loss function of a trained VAE and must not be described as one.
-
-   Reef Overlap sets how much reward is available. Incompatible cloud-to-cloud
-   overlap removes some of it. Reef Penalty decides how much is removed.
-
-       pairConflict   = overlapArea x (1 - similarity)
-       actualConflict = sum of pairConflict over all six pairs
-       maxConflict    = sum of min(areaA, areaB) x (1 - similarity), all six
-       I              = clamp(actualConflict / maxConflict, 0, 1)
-
-       Configuration Score = 100 x R x (1 - beta x I)
-
-   where R is Reef Overlap as a decimal and beta is the slider.
-
-   Two clouds overlapping is not automatically bad. Overlapping clouds of
-   *different body shapes* is what costs, which is why conflict is weighted by
-   (1 - similarity) rather than by area alone.
-
-   The denominator counts all six pairs whether or not they currently overlap,
-   so the scale is fixed by the cloud sizes rather than drifting as clouds are
-   moved apart. Cloud-reef intersection never enters this calculation.
-   =========================================================================== */
-
 /** One pair's contribution: how much incompatible area it currently shares. */
 function calculatePairConflict(overlapArea, similarity) {
   return overlapArea * (1 - similarity);
@@ -806,15 +533,38 @@ function calculateNormalizedIncompatibility(pairs) {
 }
 
 /**
- * @param {number} reefOverlapPercent 0-100, reused from Metric 1
- * @param {number} normalizedIncompatibility 0-1
+ * @param {Array} pairs from getPairOverlaps
+ * @returns {number} 0-100, the Exclusivity reading
+ */
+function calculateExclusivityPercent(pairs) {
+  return 100 * (1 - calculateNormalizedIncompatibility(pairs));
+}
+
+
+/* ===========================================================================
+   METRIC 3 — REEF HARMONY SCORE
+
+   A designed educational score for the whole four-cloud arrangement. It is NOT
+   the loss function of a trained VAE and must not be described as one.
+
+   A straight weighted average of the two metrics above, weighted by the Reef
+   Penalty slider — not a multiplicative penalty, so each metric's contribution
+   is legible on its own:
+
+       Reef Harmony Score = (1 - beta) x Safety + beta x Exclusivity
+
+   beta = 0 ("prioritize safety")      -> Harmony Score equals Safety alone.
+   beta = 1 ("prioritize exclusivity") -> Harmony Score equals Exclusivity alone.
+   =========================================================================== */
+
+/**
+ * @param {number} safetyPercent 0-100, Reef Overlap
+ * @param {number} exclusivityPercent 0-100, from calculateExclusivityPercent
  * @param {number} beta 0-1, the Reef Penalty slider
  * @returns {number} 0-100
  */
-function calculateConfigurationScore(reefOverlapPercent, normalizedIncompatibility, beta) {
-  const reward = reefOverlapPercent / 100;
-  const retained = 1 - beta * normalizedIncompatibility;
-  return clamp(100 * reward * retained, 0, 100);
+function calculateHarmonyScore(safetyPercent, exclusivityPercent, beta) {
+  return clamp((1 - beta) * safetyPercent + beta * exclusivityPercent, 0, 100);
 }
 
 
@@ -836,31 +586,18 @@ function renderReefOverlap(percent) {
   reefOverlapBar.setAttribute('aria-valuetext', `${rounded} percent`);
 }
 
-/**
- * Renders Neighbour Compatibility.
- * @param {{percent:number}|null} result null means no pair overlaps
- */
-function renderNeighbourCompatibility(result) {
-  if (result === null) {
-    compatibilityValue.textContent = 'No overlap';
-    compatibilityPanel.classList.add('is-unevaluated');
-    compatibilityFill.style.width = '0%';
-    // No value exists, so the progressbar is left indeterminate rather than
-    // reporting a misleading zero.
-    compatibilityBar.removeAttribute('aria-valuenow');
-    compatibilityBar.setAttribute('aria-valuetext', 'No overlap');
-    return;
-  }
-
-  const rounded = Math.round(result.percent);
+/** Renders Exclusivity. Always defined — 100% at rest, falling continuously
+ *  as incompatible overlap area grows, so there is no discrete jump the
+ *  instant two circles first touch. */
+function renderExclusivity(percent) {
+  const rounded = Math.round(percent);
   compatibilityValue.textContent = `${rounded}%`;
-  compatibilityPanel.classList.remove('is-unevaluated');
-  compatibilityFill.style.width = `${Math.min(100, Math.max(0, result.percent))}%`;
+  compatibilityFill.style.width = `${clamp(percent, 0, 100)}%`;
   compatibilityBar.setAttribute('aria-valuenow', String(rounded));
   compatibilityBar.setAttribute('aria-valuetext', `${rounded} percent`);
 }
 
-function updateConfigurationScoreHUD(score) {
+function updateHarmonyScoreHUD(score) {
   const rounded = Math.round(score);
   configurationValue.textContent = `${rounded}%`;
   configurationFill.style.width = `${clamp(score, 0, 100)}%`;
@@ -873,10 +610,6 @@ function getReefPenaltyBeta() {
   return Number(reefPenaltyInput.value);
 }
 
-function renderReefPenaltyValue() {
-  reefPenaltyValue.textContent = `β = ${getReefPenaltyBeta().toFixed(2)}`;
-}
-
 function updateMetrics() {
   const measured = clouds.map((cloud) => ({
     cloud,
@@ -884,45 +617,46 @@ function updateMetrics() {
     geo: getCloudGeometry(cloud)
   }));
 
-  // The six pairs are measured once and shared, so Compatibility and the
-  // Configuration Score cannot disagree about who overlaps whom.
+  // The six pairs are measured once and shared, so Exclusivity and the
+  // Harmony Score cannot disagree about who overlaps whom.
   const pairs = getPairOverlaps(measured);
 
-  // Three separate meanings, computed independently:
-  //   Reef Overlap            — position relative to the reef
-  //   Neighbour Compatibility — shape similarity of clouds overlapping each other
-  //   Configuration Score     — the whole arrangement judged together
-  const reefOverlapPercent = computeReefOverlap(measured.map((m) => m.geo), getReefGeometry());
-  renderReefOverlap(reefOverlapPercent);
-  renderNeighbourCompatibility(computeNeighbourCompatibility(pairs));
+  // Two area-based metrics, computed independently, then combined into the
+  // third:
+  //   Safety      (Reef Overlap)          — cloud area inside the reef
+  //   Exclusivity (Neighbour Incompatibility) — inverse of incompatible
+  //                                             cloud-to-cloud overlap area
+  //   Reef Harmony Score                  — the two above, weighted by beta
+  const reefGeometry = getReefGeometry();
+  const safetyPercent = computeReefOverlap(measured.map((m) => m.geo), reefGeometry);
+  const exclusivityPercent = calculateExclusivityPercent(pairs);
+  renderReefOverlap(safetyPercent);
+  renderExclusivity(exclusivityPercent);
 
-  updateConfigurationScoreHUD(calculateConfigurationScore(
-    reefOverlapPercent,
-    calculateNormalizedIncompatibility(pairs),
+  updateHarmonyScoreHUD(calculateHarmonyScore(
+    safetyPercent,
+    exclusivityPercent,
     getReefPenaltyBeta()
   ));
 
-  // Returns immediately unless Reveal Mode is open.
-  updateExplainer();
+  clouds.forEach((cloud) => cloud.classList.remove('is-overlapping', 'overlaps-reef'));
 
-  clouds.forEach((cloud) => cloud.classList.remove('is-overlapping'));
+  // Drives the Reveal Mode KL-term highlight: which circles currently overlap
+  // the prior (the reef).
+  measured.forEach((m) => {
+    if (circlesOverlap(m.geo, reefGeometry)) {
+      m.cloud.classList.add('overlaps-reef');
+    }
+  });
 
-  const overlappingPairs = [];
   for (let i = 0; i < measured.length; i++) {
     for (let j = i + 1; j < measured.length; j++) {
       if (circlesOverlap(measured[i].geo, measured[j].geo)) {
         measured[i].cloud.classList.add('is-overlapping');
         measured[j].cloud.classList.add('is-overlapping');
-        overlappingPairs.push([measured[i].cloud.dataset.name, measured[j].cloud.dataset.name]);
       }
     }
   }
-
-  // The instruction line above this one already explains how to move a cloud,
-  // so this reports state only.
-  overlapReadout.textContent = overlappingPairs.length === 0
-    ? 'No clouds are currently overlapping.'
-    : overlappingPairs.map(([a, b]) => `${a} overlaps ${b}`).join(' · ');
 }
 
 
@@ -947,12 +681,7 @@ function onPointerDown(event) {
     cloud,
     pointerId: event.pointerId,
     offsetX: event.clientX - (cloudRect.left + cloudRect.width / 2),
-    offsetY: event.clientY - (cloudRect.top + cloudRect.height / 2),
-    // Used to tell a click apart from a drag, so a tap can select a cloud in
-    // Reveal Mode without the pointer-down also counting as a move.
-    startX: event.clientX,
-    startY: event.clientY,
-    moved: false
+    offsetY: event.clientY - (cloudRect.top + cloudRect.height / 2)
   };
 
   cloud.classList.add('dragging');
@@ -965,11 +694,6 @@ function onPointerMove(event) {
   if (!activeDrag || event.pointerId !== activeDrag.pointerId) return;
 
   const { cloud, offsetX, offsetY } = activeDrag;
-
-  const DRAG_THRESHOLD_PX = 4;
-  if (Math.hypot(event.clientX - activeDrag.startX, event.clientY - activeDrag.startY) > DRAG_THRESHOLD_PX) {
-    activeDrag.moved = true;
-  }
 
   const worldRect = world.getBoundingClientRect();
   const cloudRect = cloud.getBoundingClientRect();
@@ -998,7 +722,7 @@ function onPointerMove(event) {
 function onPointerUp(event) {
   if (!activeDrag || event.pointerId !== activeDrag.pointerId) return;
 
-  const { cloud, pointerId, moved } = activeDrag;
+  const { cloud, pointerId } = activeDrag;
   cloud.releasePointerCapture(pointerId);
   cloud.classList.remove('dragging');
   cloud.removeEventListener('pointermove', onPointerMove);
@@ -1006,12 +730,6 @@ function onPointerUp(event) {
   cloud.removeEventListener('pointercancel', onPointerUp);
   updateCloudLabel(cloud);
   activeDrag = null;
-
-  if (revealActive) {
-    // A tap selects; a drag reports where the cloud ended up.
-    if (!moved) selectCloud(cloud);
-    else if (cloud === selectedCloud) announcePosterior();
-  }
 }
 
 
@@ -1045,9 +763,6 @@ function moveCloudBy(cloud, deltaXPercent, deltaYPercent) {
 
   updateCloudLabel(cloud);
   updateMetrics();
-
-  // Keyboard movement is discrete, so a debounced announcement is enough.
-  if (revealActive && cloud === selectedCloud) announcePosterior();
 }
 
 const ARROW_DIRECTIONS = {
@@ -1058,14 +773,6 @@ const ARROW_DIRECTIONS = {
 };
 
 function onCloudKeyDown(event) {
-  // Enter or Space selects this cloud in Reveal Mode. Handled before the arrow
-  // keys so it cannot interfere with movement.
-  if (revealActive && (event.key === 'Enter' || event.key === ' ' || event.key === 'Spacebar')) {
-    event.preventDefault();
-    selectCloud(event.currentTarget);
-    return;
-  }
-
   const direction = ARROW_DIRECTIONS[event.key];
   if (!direction) return;
 
@@ -1088,234 +795,42 @@ function onCloudKeyDown(event) {
 
 
 /* ===========================================================================
-   REVEAL MODE — Explainer Step 1
+   REVEAL MODE
 
-   Shows one cloud as the posterior for one image, annotating its mean and
-   spread. Later explainer steps (prior, KL, sampling, reconstruction) are not
-   implemented here.
+   A single panel presenting the beta-VAE loss as a competition between two
+   overlaps. Opening it strips the fish, tans the water, and dims the HUD
+   panels and the Reef Penalty control; hovering or focusing a term in the
+   formula brings the part of the scene it corresponds to back to full
+   strength via a body-level hover-* class, so the highlighting is pure CSS.
 
-   Every listener is attached once at start-up and the mode is driven by state,
-   so opening and closing repeatedly cannot accumulate handlers.
+   Every listener is attached once at start-up and the mode is driven by
+   state, so opening and closing repeatedly cannot accumulate handlers.
    =========================================================================== */
 
 const revealPanel = document.getElementById('reveal-panel');
 const revealButton = document.getElementById('reveal-model');
-const revealClose = document.getElementById('reveal-close');
 const revealHeading = document.getElementById('reveal-heading');
-const revealSelectedName = document.getElementById('reveal-selected-name');
-const muValue = document.getElementById('mu-value');
-const sigmaValue = document.getElementById('sigma-value');
-const mathMu = document.getElementById('math-mu');
-const mathSigma = document.getElementById('math-sigma');
-const posteriorAnnouncement = document.getElementById('posterior-announcement');
+const termHarmony = document.getElementById('term-harmony');
+const termReconstruction = document.getElementById('term-reconstruction');
+const termKL = document.getElementById('term-kl');
+const termBeta = document.getElementById('term-beta');
 
-const revealStepLabel = document.getElementById('reveal-step-label');
-const revealStep1 = document.getElementById('reveal-step-1');
-const revealStep2 = document.getElementById('reveal-step-2');
-const step2Heading = document.getElementById('step-2-heading');
-const step2SelectedName = document.getElementById('step-2-selected-name');
-const step2Mu = document.getElementById('step-2-mu');
-const step2Sigma = document.getElementById('step-2-sigma');
-const distanceValue = document.getElementById('distance-value');
-const mathStep2Mu = document.getElementById('math-step2-mu');
-const mathStep2Sigma = document.getElementById('math-step2-sigma');
-const mathStep2D = document.getElementById('math-step2-d');
-const toStep2 = document.getElementById('to-step-2');
-const toStep1 = document.getElementById('to-step-1');
-const revealStep3 = document.getElementById('reveal-step-3');
-const step3Heading = document.getElementById('step-3-heading');
-const step3SelectedName = document.getElementById('step-3-selected-name');
-const klLocation = document.getElementById('kl-location');
-const klSpread = document.getElementById('kl-spread');
-const klTotal = document.getElementById('kl-total');
-const klDistance = document.getElementById('kl-distance');
-const klSigma = document.getElementById('kl-sigma');
-const klMathMu = document.getElementById('kl-math-mu');
-const klMathSigma = document.getElementById('kl-math-sigma');
-const klMathLocation = document.getElementById('kl-math-location');
-const klMathSpread = document.getElementById('kl-math-spread');
-const klMathTotal = document.getElementById('kl-math-total');
-const toStep3 = document.getElementById('to-step-3');
-const toStep2Back = document.getElementById('to-step-2-back');
-
-let revealActive = false;
-let selectedCloud = null;
-let announceTimer = null;
-let distanceLine = null;
-
-/* Explicit state, never inferred from styles or text content. */
-let activeExplainerStep = 1;
-
-const STEP_LABELS = {
-  1: 'Step 1 — Encoded Distributions',
-  2: 'Step 2 — The Prior',
-  3: 'Step 3 — KL Divergence'
+const REVEAL_BUTTON_LABEL = {
+  closed: "What's the connection with VAEs?",
+  open: 'Back to the reef!'
 };
 
-const STEP_HEADINGS = {};
+let revealActive = false;
 
-/** Builds the centre marker and spread indicator once per cloud, on demand. */
-function ensureAnnotations(cloud) {
-  if (cloud.querySelector('.mu-marker')) return;
-
-  const marker = document.createElement('div');
-  marker.className = 'mu-marker';
-  marker.setAttribute('aria-hidden', 'true');
-  marker.innerHTML = '<span class="mu-marker-label">&mu;</span>';
-
-  // A line from the mathematical centre out to the contour, labelled sigma.
-  const spread = document.createElement('div');
-  spread.className = 'sigma-indicator';
-  spread.setAttribute('aria-hidden', 'true');
-  spread.innerHTML = '<span class="sigma-indicator-label">&sigma;</span>';
-
-  cloud.append(marker, spread);
+function setHoverTerm(term) {
+  document.body.classList.toggle('hover-harmony', term === 'harmony');
+  document.body.classList.toggle('hover-reconstruction', term === 'reconstruction');
+  document.body.classList.toggle('hover-kl', term === 'kl');
+  document.body.classList.toggle('hover-beta', term === 'beta');
 }
 
-function selectCloud(cloud) {
-  if (!cloud) return;
-  selectedCloud = cloud;
-  ensureAnnotations(cloud);
-
-  clouds.forEach((candidate) => {
-    const isSelected = candidate === cloud;
-    candidate.classList.toggle('is-selected', isSelected);
-    candidate.classList.toggle('is-muted', revealActive && !isSelected);
-    if (revealActive) {
-      candidate.setAttribute('aria-pressed', String(isSelected));
-    }
-  });
-
-  revealSelectedName.textContent = cloud.dataset.name;
-  step2SelectedName.textContent = cloud.dataset.name;
-  step3SelectedName.textContent = cloud.dataset.name;
-  updateExplainer();
-  announcePosterior();
-}
-
-/**
- * Positions the reef-to-cloud distance line.
- *
- * Length and angle come from the same pixel geometry the metrics use, then are
- * converted once into a percentage of the world's width. Rotation preserves
- * length, so the rendered line matches the measured separation exactly. No
- * second coordinate system is introduced.
- */
-function updateDistanceLine() {
-  const cloudGeometry = getCloudGeometry(selectedCloud);
-  const reefGeometry = getReefGeometry();
-  const worldRect = world.getBoundingClientRect();
-
-  const dx = cloudGeometry.centerX - reefGeometry.centerX;
-  const dy = cloudGeometry.centerY - reefGeometry.centerY;
-  const lengthPx = Math.hypot(dx, dy);
-
-  // A cloud sitting on the reef centre would otherwise leave a stray stub.
-  distanceLine.hidden = lengthPx < 1;
-  if (distanceLine.hidden) return;
-
-  distanceLine.style.width = `${(lengthPx / worldRect.width) * 100}%`;
-  distanceLine.style.transform = `rotate(${Math.atan2(dy, dx) * (180 / Math.PI)}deg)`;
-}
-
-/** Refreshes the displayed parameters. Cheap enough to run on every drag frame. */
-function updateExplainer() {
-  if (!revealActive || !selectedCloud) return;
-
-  // One measurement feeds every readout, so the two steps cannot disagree.
-  const parameters = calculatePosteriorParameters(
-    getCloudGeometry(selectedCloud), getReefGeometry()
-  );
-  const shown = formatPosteriorParameters(parameters);
-  const distance = calculateDistanceFromPriorMean(parameters.mu).toFixed(2);
-
-  muValue.textContent = shown.mu;
-  sigmaValue.textContent = shown.sigma;
-  mathMu.textContent = shown.mu;
-  mathSigma.textContent = shown.sigma;
-
-  step2Mu.textContent = shown.mu;
-  step2Sigma.textContent = shown.sigma;
-  distanceValue.textContent = distance;
-  mathStep2Mu.textContent = shown.mu;
-  mathStep2Sigma.textContent = shown.sigma;
-  mathStep2D.textContent = distance;
-
-  // Step 3 reads the same full-precision parameters, never the strings above.
-  const kl = calculateKLComponents(parameters.mu, parameters.sigma);
-  if (kl) {
-    const location = kl.locationMismatch.toFixed(2);
-    const spread = kl.spreadMismatch.toFixed(2);
-    // Calculated at full precision, then rounded once. Never the sum of the
-    // two rounded components.
-    const total = kl.total.toFixed(2);
-
-    klLocation.textContent = location;
-    klSpread.textContent = spread;
-    klTotal.textContent = total;
-    klDistance.textContent = distance;
-    klSigma.textContent = shown.sigma;
-
-    klMathMu.textContent = shown.mu;
-    klMathSigma.textContent = shown.sigma;
-    klMathLocation.textContent = location;
-    klMathSpread.textContent = spread;
-    klMathTotal.textContent = total;
-  }
-
-  // The distance line is drawn in Steps 2 and 3, de-emphasized in Step 3.
-  if (activeExplainerStep === 2 || activeExplainerStep === 3) updateDistanceLine();
-}
-
-/** Switches step without touching the selected cloud. */
-function goToStep(step) {
-  activeExplainerStep = step;
-  revealPanel.dataset.step = String(step);
-
-  // Step 2's prior visuals persist into Step 3, so both carry this class and
-  // Step 3 de-emphasizes the distance line through data-step instead.
-  document.body.classList.toggle('reveal-step-2', step === 2 || step === 3);
-  document.body.classList.toggle('reveal-step-3', step === 3);
-
-  revealStep1.hidden = step !== 1;
-  revealStep2.hidden = step !== 2;
-  revealStep3.hidden = step !== 3;
-  revealStepLabel.textContent = STEP_LABELS[step];
-
-  updateExplainer();
-  STEP_HEADINGS[step].focus();
-}
-
-/**
- * Screen-reader announcement, deliberately not live-bound to the visible
- * values. Announcing every pointer frame would flood the user, so this is
- * called on drag end and debounced for keyboard movement.
- */
-function announcePosterior() {
-  if (!revealActive || !selectedCloud) return;
-  clearTimeout(announceTimer);
-  announceTimer = setTimeout(() => {
-    const parameters = calculatePosteriorParameters(
-      getCloudGeometry(selectedCloud), getReefGeometry()
-    );
-    const shown = formatPosteriorParameters(parameters);
-    const base = `${selectedCloud.dataset.name}. Mean ${shown.muX}, ${shown.muY}. Spread ${shown.sigma}.`;
-    const distance = calculateDistanceFromPriorMean(parameters.mu).toFixed(2);
-
-    // One shared live region across all three steps; only the wording differs.
-    let message = base;
-    if (activeExplainerStep === 2) {
-      message = `${base} Distance from prior mean ${distance}.`;
-    } else if (activeExplainerStep === 3) {
-      const kl = calculateKLComponents(parameters.mu, parameters.sigma);
-      if (kl) {
-        message = `${base} Location mismatch ${kl.locationMismatch.toFixed(2)}, `
-          + `spread mismatch ${kl.spreadMismatch.toFixed(2)}, `
-          + `KL divergence ${kl.total.toFixed(2)} nats.`;
-      }
-    }
-    posteriorAnnouncement.textContent = message;
-  }, 350);
+function clearHoverTerm() {
+  setHoverTerm(null);
 }
 
 function openReveal() {
@@ -1325,12 +840,8 @@ function openReveal() {
   revealPanel.hidden = false;
   document.body.classList.add('reveal-active');
   revealButton.setAttribute('aria-expanded', 'true');
-
-  clouds.forEach((cloud) => cloud.setAttribute('aria-pressed', 'false'));
-  selectCloud(selectedCloud || clouds.find((c) => c.dataset.cloudId === 'round-orange') || clouds[0]);
-
-  // Always begins at Step 1, and goToStep moves focus to its heading.
-  goToStep(1);
+  revealButton.textContent = REVEAL_BUTTON_LABEL.open;
+  revealHeading.focus();
 }
 
 function closeReveal() {
@@ -1338,31 +849,32 @@ function closeReveal() {
   revealActive = false;
 
   revealPanel.hidden = true;
-  document.body.classList.remove('reveal-active', 'reveal-step-2', 'reveal-step-3');
+  document.body.classList.remove('reveal-active');
+  clearHoverTerm();
   revealButton.setAttribute('aria-expanded', 'false');
-
-  clouds.forEach((cloud) => {
-    cloud.classList.remove('is-selected', 'is-muted');
-    cloud.removeAttribute('aria-pressed');
-  });
-
-  clearTimeout(announceTimer);
-  posteriorAnnouncement.textContent = '';
+  revealButton.textContent = REVEAL_BUTTON_LABEL.closed;
   revealButton.focus();
 }
 
-function initReveal() {
-  // Attached once, so navigating between steps can never accumulate handlers.
-  revealButton.addEventListener('click', openReveal);
-  revealClose.addEventListener('click', closeReveal);
-  toStep2.addEventListener('click', () => goToStep(2));
-  toStep1.addEventListener('click', () => goToStep(1));
-  toStep3.addEventListener('click', () => goToStep(3));
-  toStep2Back.addEventListener('click', () => goToStep(2));
+function toggleReveal() {
+  if (revealActive) closeReveal();
+  else openReveal();
+}
 
-  STEP_HEADINGS[1] = revealHeading;
-  STEP_HEADINGS[2] = step2Heading;
-  STEP_HEADINGS[3] = step3Heading;
+function initReveal() {
+  revealButton.addEventListener('click', toggleReveal);
+
+  [
+    [termHarmony, 'harmony'],
+    [termReconstruction, 'reconstruction'],
+    [termKL, 'kl'],
+    [termBeta, 'beta']
+  ].forEach(([element, term]) => {
+    element.addEventListener('mouseenter', () => setHoverTerm(term));
+    element.addEventListener('mouseleave', clearHoverTerm);
+    element.addEventListener('focus', () => setHoverTerm(term));
+    element.addEventListener('blur', clearHoverTerm);
+  });
 
   document.addEventListener('keydown', (event) => {
     if (event.key === 'Escape' && revealActive) {
@@ -1409,7 +921,6 @@ function initReefDebug() {
 function init() {
   buildScene();
   reefZone = document.getElementById('reef-zone');
-  distanceLine = document.getElementById('distance-line');
   clouds = Array.from(document.querySelectorAll('.latent-cloud'));
   clouds.forEach((cloud) => {
     cloud.addEventListener('pointerdown', onPointerDown);
@@ -1422,11 +933,7 @@ function init() {
   // The slider is a judging weight only: it re-scores the current arrangement
   // and touches nothing else. "input" so the score tracks the thumb live.
   reefPenaltyInput.value = String(CONFIG.reefPenaltyBeta);
-  renderReefPenaltyValue();
-  reefPenaltyInput.addEventListener('input', () => {
-    renderReefPenaltyValue();
-    updateMetrics();
-  });
+  reefPenaltyInput.addEventListener('input', updateMetrics);
 
   let resizeTimeout;
   window.addEventListener('resize', () => {

@@ -18,6 +18,11 @@
   /* Sampled from the four corners and edge midpoints of the background art,
      all of which read #0066ff, so letterbox bars are seamless. */
   --ocean-edge: #0066ff;
+
+  /* Muted khaki used for both the Reveal Mode tint (see #reveal-tint) and the
+     letterbox bars outside #latent-world, so the recolor reaches edge to edge
+     instead of stopping at the artwork's own boundary. */
+  --reveal-khaki: #b3a586;
 }
 
 * {
@@ -31,6 +36,7 @@ body {
   overflow: hidden;
   font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
   background: var(--ocean-edge);
+  transition: background 0.3s ease;
 }
 
 #ocean-scene {
@@ -39,6 +45,15 @@ body {
   display: grid;
   place-items: center;
   background: var(--ocean-edge);
+  transition: background 0.3s ease;
+}
+
+/* Recolors the letterbox bars to match the tint over the artwork, so the
+   khaki reaches every edge of the viewport instead of stopping at
+   #latent-world's boundary. */
+body.reveal-active,
+body.reveal-active #ocean-scene {
+  background: var(--reveal-khaki);
 }
 
 /* Largest box with the artwork's aspect ratio that fits the viewport.
@@ -65,6 +80,15 @@ body {
   object-fit: cover;
   user-select: none;
   -webkit-user-drag: none;
+  transition: opacity 0.3s ease;
+}
+
+/* The artwork (blue water, baked-in grid, reef, rings) is simply hidden for
+   Reveal Mode rather than recolored — every recolor attempt (blended tint,
+   filter chain) left visible artifacts. The flat khaki background set on
+   body/#ocean-scene shows through underneath instead. */
+body.reveal-active .ocean-background {
+  opacity: 0;
 }
 
 /* ---------------------------------------------------------------------------
@@ -95,6 +119,24 @@ body.debug-reef #reef-zone {
   border: 2px dashed rgba(255, 255, 255, 0.9);
   background: rgba(255, 255, 255, 0.08);
   box-shadow: 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+/* Stand-in for the artwork's own reef/prior drawing, which is hidden along
+   with the rest of the background art in Reveal Mode. Uses the same
+   position and radius the artwork was calibrated to (CONFIG.reef in
+   app.js), so it lines up with where the reef always was. */
+body.reveal-active #reef-zone {
+  border: 2px dashed rgba(255, 255, 255, 0.85);
+  background: rgba(255, 255, 255, 0.10);
+  box-shadow: 0 0 24px rgba(255, 255, 255, 0.25);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Echoes the KL-term highlight already applied to the Reef Overlap panel and
+   any circles overlapping the reef. */
+body.reveal-active.hover-kl #reef-zone {
+  border-color: #ffe6a0;
+  box-shadow: 0 0 0 3px #ffe6a0, 0 0 30px rgba(255, 230, 160, 0.6);
 }
 
 /* Cross-hair at the reef centre, so the centre point can be checked as well
@@ -228,6 +270,20 @@ body.debug-reef #reef-zone::after {
     0 0 24px rgba(var(--cloud-rgb), 0.35);
 }
 
+/* Reveal Mode strips the fish entirely; only the measurable circles remain. */
+body.reveal-active .cloud-fish {
+  display: none;
+}
+
+/* Reveal Mode term highlights: reconstruction lights up circles that overlap
+   each other, KL lights up circles that overlap the reef (the prior). */
+body.reveal-active.hover-reconstruction .latent-cloud.is-overlapping .cloud-region,
+body.reveal-active.hover-kl .latent-cloud.overlaps-reef .cloud-region {
+  box-shadow:
+    0 0 0 4px #ffe6a0,
+    0 0 34px rgba(255, 230, 160, 0.65);
+}
+
 /* ---------------------------------------------------------------------------
    HUD
 
@@ -262,11 +318,31 @@ body.debug-reef #reef-zone::after {
   border-radius: 0.4rem;
   box-shadow: 0 2px 14px rgba(0, 20, 60, 0.35);
   backdrop-filter: blur(3px);
+  transition: opacity 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
+}
+
+/* Reveal Mode dims every panel individually (rather than the #hud container),
+   so a single panel can be brought back to full strength by the term
+   highlights below without the others following it. */
+body.reveal-active .hud-panel {
+  opacity: 0.35;
+  filter: saturate(0.5);
+}
+
+body.hover-harmony #configuration-panel,
+body.hover-reconstruction #compatibility-panel,
+body.hover-kl #reef-overlap-panel {
+  opacity: 1;
+  filter: none;
+  box-shadow:
+    0 2px 14px rgba(0, 20, 60, 0.35),
+    0 0 0 2px #ffe6a0,
+    0 0 24px rgba(255, 230, 160, 0.5);
 }
 
 .hud-panel-head {
   display: flex;
-  align-items: baseline;
+  align-items: flex-start;
   justify-content: space-between;
   gap: 1.5rem;
   margin-bottom: 0.45rem;
@@ -279,6 +355,18 @@ body.debug-reef #reef-zone::after {
   letter-spacing: 0.16em;
   text-transform: uppercase;
   color: #eaf4ff;
+}
+
+/* De-emphasized second line naming the underlying measurement, so the bold
+   headline can use the reframed, plain-language term. */
+.hud-label-sub {
+  display: block;
+  margin-top: 0.15rem;
+  font-size: 0.6rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  text-transform: none;
+  color: rgba(220, 238, 250, 0.55);
 }
 
 .hud-value {
@@ -315,20 +403,6 @@ body.debug-reef #reef-zone::after {
 
 .hud-panel--score .hud-value {
   color: #a8ecc8;
-}
-
-/* No pair currently overlaps, so Neighbour Compatibility has no value to show.
-   Dimmed rather than displaying a misleading zero. */
-.hud-panel.is-unevaluated .hud-value {
-  color: rgba(190, 215, 245, 0.6);
-  font-style: italic;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  font-size: 0.7rem;
-}
-
-.hud-panel.is-unevaluated .hud-bar {
-  background: rgba(255, 255, 255, 0.12);
 }
 
 /* ---------------------------------------------------------------------------
@@ -381,16 +455,18 @@ body.debug-reef #reef-zone::after {
   backdrop-filter: blur(3px);
   color: #eaf4ff;
   text-align: center;
+  transition: opacity 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease;
 }
 
-.reef-penalty-label {
-  display: block;
-  margin-bottom: 0.3rem;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  cursor: pointer;
+body.reveal-active .reef-penalty {
+  opacity: 0.35;
+  filter: saturate(0.5);
+}
+
+body.hover-beta .reef-penalty {
+  opacity: 1;
+  filter: none;
+  box-shadow: 0 0 0 2px #ffe6a0, 0 0 24px rgba(255, 230, 160, 0.5);
 }
 
 /* A real character rather than an image, so it stays crisp at any size and is
@@ -404,12 +480,19 @@ body.debug-reef #reef-zone::after {
 .reef-penalty-row {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.5rem;
 }
 
 .reef-penalty-end {
-  font-size: 0.62rem;
-  color: rgba(200, 225, 255, 0.7);
+  flex: 0 1 auto;
+  font-size: 0.66rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: rgba(220, 238, 250, 0.85);
+}
+
+.reef-penalty-end:first-child {
+  text-align: right;
 }
 
 .reef-penalty-row input[type="range"] {
@@ -427,19 +510,15 @@ body.debug-reef #reef-zone::after {
   border-radius: 0.2rem;
 }
 
-#reef-penalty-value {
-  min-width: 4.1rem;
-  font-size: 0.66rem;
-  font-variant-numeric: tabular-nums;
-  color: #a8ecc8;
-  white-space: nowrap;
-}
-
 /* ---------------------------------------------------------------------------
-   Reveal Mode — Explainer Step 1
+   Reveal Mode
 
-   The centre marker and spread indicator are drawn with shapes and letters, not
-   colour alone, so they are still distinguishable without colour perception.
+   A single panel presenting the beta-VAE loss as a competition between two
+   overlaps. Hovering or focusing a formula term toggles body.hover-* (see
+   app.js), which the highlight rules above (HUD panels, Reef Penalty, cloud
+   circles) key off of. No colour-only signalling: every highlighted target
+   also gets an outline/glow, and each term is independently reachable by
+   keyboard (tabindex="0") and announces via focus, not just hover.
 --------------------------------------------------------------------------- */
 
 .reveal-panel {
@@ -466,701 +545,103 @@ body.debug-reef #reef-zone::after {
   display: none;
 }
 
-.reveal-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin-bottom: 0.6rem;
-}
-
-.reveal-step {
-  margin: 0;
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
-  color: #a9d4ff;
-}
-
-.reveal-close {
-  padding: 0.3rem 0.6rem;
-  font: inherit;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #7fe3ff;
-  background: transparent;
-  border: 1px solid rgba(127, 227, 255, 0.5);
-  border-radius: 0.3rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.reveal-close:hover {
-  background: rgba(16, 52, 116, 0.9);
-}
-
 .reveal-heading {
   margin: 0 0 0.5rem;
-  font-size: 1rem;
+  font-size: 1.1rem;
   line-height: 1.3;
 }
 
-.reveal-heading:focus-visible,
-.reveal-close:focus-visible,
-.reveal-math summary:focus-visible {
+.reveal-heading:focus-visible {
   outline: 3px solid #ffffff;
   outline-offset: 3px;
   border-radius: 0.2rem;
 }
 
 .reveal-body {
-  margin: 0 0 0.6rem;
+  margin: 0 0 0.8rem;
 }
 
-.reveal-process {
+.reveal-formula {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.35rem;
+  justify-content: center;
+  gap: 0.5rem;
   margin: 0 0 0.7rem;
-  padding: 0.45rem 0.6rem;
+  padding: 0.7rem 0.6rem;
   background: rgba(255, 255, 255, 0.06);
   border-radius: 0.3rem;
-  font-size: 0.72rem;
-}
-
-.reveal-arrow {
-  color: #7fe3ff;
-}
-
-.reveal-selected {
-  margin: 0 0 0.5rem;
-  font-size: 0.72rem;
-  color: rgba(220, 238, 250, 0.85);
-}
-
-.reveal-params {
-  margin: 0 0 0.6rem;
-  display: grid;
-  gap: 0.5rem;
-}
-
-.reveal-param {
-  padding: 0.45rem 0.6rem;
-  background: rgba(255, 255, 255, 0.06);
-  border-radius: 0.3rem;
-}
-
-.reveal-param dt {
-  display: flex;
-  align-items: center;
-  gap: 0.4rem;
-  font-weight: 700;
-  font-size: 0.7rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.reveal-param dd {
-  margin: 0.2rem 0 0;
-}
-
-/* Shape keys that echo the on-scene annotations, so the panel and the ocean
-   can be matched without relying on colour. */
-.param-key {
-  flex: 0 0 auto;
-  width: 0.85rem;
-  height: 0.85rem;
-  position: relative;
-}
-
-.param-key--mu::before,
-.param-key--mu::after {
-  content: "";
-  position: absolute;
-  background: #ffe6a0;
-}
-
-.param-key--mu::before {
-  left: 50%;
-  top: 0;
-  width: 2px;
-  height: 100%;
-  transform: translateX(-50%);
-}
-
-.param-key--mu::after {
-  top: 50%;
-  left: 0;
-  height: 2px;
-  width: 100%;
-  transform: translateY(-50%);
-}
-
-.param-key--sigma::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: repeating-linear-gradient(
-    90deg, #ffe6a0 0 4px, transparent 4px 7px
-  );
-  transform: translateY(-50%);
-}
-
-.param-value {
-  display: inline-block;
-  font-variant-numeric: tabular-nums;
-  font-size: 0.9rem;
-  font-weight: 700;
-  color: #ffe6a0;
-}
-
-.param-note {
-  display: block;
-  font-size: 0.72rem;
-  color: rgba(220, 238, 250, 0.8);
-}
-
-.reveal-note {
-  margin: 0 0 0.6rem;
-  font-size: 0.74rem;
-  color: rgba(220, 238, 250, 0.9);
-}
-
-.reveal-math {
-  margin-bottom: 0.6rem;
-  padding: 0.4rem 0.6rem;
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 0.3rem;
-}
-
-.reveal-math summary {
-  cursor: pointer;
-  font-size: 0.68rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #7fe3ff;
-}
-
-.reveal-math-body {
-  margin-top: 0.5rem;
-  font-size: 0.74rem;
-}
-
-.formula {
-  margin: 0 0 0.35rem;
   font-family: "Cambria Math", Cambria, "Times New Roman", serif;
-  font-size: 0.9rem;
+  font-size: 1rem;
+  text-align: center;
+}
+
+.loss-op {
+  color: #7fe3ff;
+}
+
+.loss-term {
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  border: 1px solid transparent;
   color: #ffe6a0;
+  cursor: default;
+  transition: background 0.15s ease, border-color 0.15s ease;
 }
 
-.reveal-caveat {
-  margin: 0 0 0.4rem;
-  font-size: 0.68rem;
-  line-height: 1.4;
-  color: rgba(220, 238, 250, 0.72);
+.loss-term:hover,
+.loss-term:focus-visible {
+  background: rgba(255, 230, 160, 0.16);
+  border-color: rgba(255, 230, 160, 0.55);
+  outline: none;
 }
 
-.reveal-caveat--hint {
-  margin-top: 0.6rem;
-  padding-top: 0.5rem;
-  border-top: 1px solid rgba(200, 225, 255, 0.2);
-  color: rgba(220, 238, 250, 0.85);
-}
-
-/* --- Scene treatment while Reveal Mode is open --- */
-
-body.reveal-active #hud,
-body.reveal-active #status-panel,
-body.reveal-active .reef-penalty {
-  opacity: 0.35;
-  filter: saturate(0.5);
-  transition: opacity 0.2s ease;
-}
-
-body.reveal-active .latent-cloud.is-muted {
-  opacity: 0.3;
-}
-
-/* The fish is dimmed so the annotations over it stay legible, and lifts on
-   hover or focus when the reader wants to see the image itself again. */
-body.reveal-active .latent-cloud.is-selected .cloud-fish {
-  opacity: 0.35;
-}
-
-body.reveal-active .latent-cloud.is-selected:hover .cloud-fish,
-body.reveal-active .latent-cloud.is-selected:focus-visible .cloud-fish {
-  opacity: 0.75;
-}
-
-body.reveal-active .latent-cloud.is-selected .cloud-region {
-  border-style: dashed;
-  border-width: 3px;
-  box-shadow:
-    0 0 0 3px rgba(255, 230, 160, 0.35),
-    0 0 30px rgba(var(--cloud-rgb), 0.5);
-}
-
-/* --- Annotations on the selected cloud --- */
-
-.mu-marker,
-.sigma-indicator {
-  display: none;
-  position: absolute;
-  pointer-events: none;
-  z-index: 3;
-}
-
-body.reveal-active .latent-cloud.is-selected .mu-marker,
-body.reveal-active .latent-cloud.is-selected .sigma-indicator {
-  display: block;
-}
-
-/* A cross at the mathematical centre. */
-.mu-marker {
-  left: 50%;
-  top: 50%;
-  width: 1.4rem;
-  height: 1.4rem;
-  transform: translate(-50%, -50%);
-}
-
-.mu-marker::before,
-.mu-marker::after {
-  content: "";
-  position: absolute;
-  background: #ffe6a0;
-  box-shadow: 0 0 0 1px rgba(10, 30, 60, 0.7);
-}
-
-.mu-marker::before {
-  left: 50%;
-  top: 0;
-  width: 2px;
-  height: 100%;
-  transform: translateX(-50%);
-}
-
-.mu-marker::after {
-  top: 50%;
-  left: 0;
-  height: 2px;
-  width: 100%;
-  transform: translateY(-50%);
-}
-
-.mu-marker-label,
-.sigma-indicator-label {
-  position: absolute;
-  font-size: 0.7rem;
-  font-weight: 700;
-  font-style: italic;
-  color: #ffe6a0;
-  text-shadow: 0 0 4px rgba(6, 24, 60, 0.95), 0 0 2px rgba(6, 24, 60, 1);
-}
-
-.mu-marker-label {
-  left: 105%;
-  top: -0.2rem;
-}
-
-/* Centre out to the contour: one standard deviation. */
-.sigma-indicator {
-  left: 50%;
-  top: 50%;
-  width: 50%;
-  height: 2px;
-  transform: translateY(-50%);
-  background: repeating-linear-gradient(
-    90deg, #ffe6a0 0 5px, transparent 5px 9px
-  );
-}
-
-.sigma-indicator::after {
-  content: "";
-  position: absolute;
-  right: 0;
-  top: 50%;
-  width: 2px;
-  height: 0.7rem;
-  background: #ffe6a0;
-  transform: translateY(-50%);
-}
-
-.sigma-indicator-label {
-  right: 12%;
-  top: -1.1rem;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  body.reveal-active #hud,
-  body.reveal-active #status-panel,
-  body.reveal-active .reef-penalty {
-    transition: none;
-  }
-}
-
-/* ---------------------------------------------------------------------------
-   Step navigation
---------------------------------------------------------------------------- */
-
-.reveal-nav {
-  display: flex;
-  gap: 0.5rem;
+/* All four paragraphs are stacked in the same grid cell (grid-area: 1 / 1)
+   and swapped with opacity/visibility, never display. That keeps the cell's
+   height constant — always the tallest of the four — regardless of which
+   term is active, so showing an explanation can never resize or recentre
+   the panel and shift the term the pointer is over out from under it. */
+.reveal-explain-list {
+  display: grid;
   margin-top: 0.7rem;
   padding-top: 0.6rem;
   border-top: 1px solid rgba(200, 225, 255, 0.2);
 }
 
-.reveal-nav-button {
-  padding: 0.4rem 0.75rem;
-  font: inherit;
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #0a2350;
-  background: #7fe3ff;
-  border: 1px solid #7fe3ff;
-  border-radius: 0.3rem;
-  cursor: pointer;
-}
-
-.reveal-nav-button:hover {
-  background: #b6efff;
-  border-color: #b6efff;
-}
-
-.reveal-nav-button:focus-visible {
-  outline: 3px solid #ffffff;
-  outline-offset: 3px;
-}
-
-.reveal-definition {
-  padding-left: 0.6rem;
-  border-left: 2px solid rgba(127, 227, 255, 0.6);
-  color: rgba(220, 238, 250, 0.9);
-}
-
-.reveal-secondary {
-  font-size: 0.68rem;
-  color: rgba(220, 238, 250, 0.7);
-}
-
-/* ---------------------------------------------------------------------------
-   STEP 2 — the prior
-
-   The prior is a standard normal centred on the reef. The reef radius equals
-   one latent unit, which matches one standard-deviation unit of the prior along
-   any direction. It is a reference contour, not a boundary. The density fade
-   below deliberately extends far past the reef so the artwork is not read as
-   the prior stopping at its edge.
-
-   All three annotations are inert; none can intercept a drag.
---------------------------------------------------------------------------- */
-
-#prior-density,
-#prior-mean-marker,
-#distance-line {
-  position: absolute;
-  display: none;
-  pointer-events: none;
-  z-index: 2;
-}
-
-body.reveal-step-2 #prior-density,
-body.reveal-step-2 #prior-mean-marker,
-body.reveal-step-2 #distance-line {
-  display: block;
-}
-
-/* Extends well beyond the reef: the density has no edge. */
-#prior-density {
-  left: var(--x, 50%);
-  top: var(--y, 50%);
-  width: 150%;
-  aspect-ratio: 1;
-  transform: translate(-50%, -50%);
-  border-radius: 50%;
-  background: radial-gradient(
-    circle,
-    rgba(255, 255, 255, 0.20) 0%,
-    rgba(255, 255, 255, 0.12) 18%,
-    rgba(255, 255, 255, 0.06) 34%,
-    rgba(255, 255, 255, 0.02) 52%,
-    rgba(255, 255, 255, 0) 72%
-  );
-}
-
-/* A ring with a centre dot. Deliberately a different shape from the encoded
-   mean's cross, so the two never depend on colour to be told apart. */
-#prior-mean-marker {
-  left: var(--x, 50%);
-  top: var(--y, 50%);
-  width: 1.5rem;
-  height: 1.5rem;
-  transform: translate(-50%, -50%);
-  border: 2px solid #ffffff;
-  border-radius: 50%;
-  box-shadow: 0 0 0 1px rgba(6, 24, 60, 0.8), 0 0 12px rgba(255, 255, 255, 0.4);
-  z-index: 4;
-}
-
-#prior-mean-marker::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0.4rem;
-  height: 0.4rem;
-  border-radius: 50%;
-  background: #ffffff;
-  transform: translate(-50%, -50%);
-}
-
-.prior-mean-label {
-  position: absolute;
-  left: 50%;
-  top: 115%;
-  transform: translateX(-50%);
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  white-space: nowrap;
-  color: #ffffff;
-  text-shadow: 0 0 4px rgba(6, 24, 60, 0.95), 0 0 2px rgba(6, 24, 60, 1);
-}
-
-/* Solid, with a tick at each end: distinct from the dashed sigma indicator.
-   Width and rotation are set from the live geometry in updateDistanceLine. */
-#distance-line {
-  left: var(--x, 50%);
-  top: var(--y, 50%);
-  height: 2px;
-  margin-top: -1px;
-  transform-origin: 0 50%;
-  background: #ffffff;
-  box-shadow: 0 0 0 1px rgba(6, 24, 60, 0.6);
-  z-index: 3;
-}
-
-#distance-line::before,
-#distance-line::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  width: 2px;
-  height: 0.6rem;
-  background: #ffffff;
-  transform: translateY(-50%);
-}
-
-#distance-line::before { left: 0; }
-#distance-line::after  { right: 0; }
-
-.distance-line-label {
-  position: absolute;
-  left: 50%;
-  top: -1.15rem;
-  transform: translateX(-50%);
-  font-size: 0.78rem;
-  font-weight: 700;
-  font-style: italic;
-  color: #ffffff;
-  text-shadow: 0 0 4px rgba(6, 24, 60, 0.95), 0 0 2px rgba(6, 24, 60, 1);
-}
-
-/* Panel keys echoing the on-scene shapes. */
-.param-key--prior {
-  border: 2px solid #ffe6a0;
-  border-radius: 50%;
-}
-
-.param-key--prior::after {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0.25rem;
-  height: 0.25rem;
-  border-radius: 50%;
-  background: #ffe6a0;
-  transform: translate(-50%, -50%);
-}
-
-.param-key--distance::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 0;
-  width: 100%;
-  height: 2px;
-  background: #ffe6a0;
-  transform: translateY(-50%);
-}
-
-.param-key--distance::after {
-  content: "";
-  position: absolute;
-  top: 50%;
-  right: 0;
-  width: 2px;
-  height: 0.55rem;
-  background: #ffe6a0;
-  transform: translateY(-50%);
-}
-
-/* In Steps 2 and 3 the reef is part of the subject, so its contour is drawn. */
-body.reveal-step-2 #reef-zone {
-  border: 2px dashed rgba(255, 255, 255, 0.55);
-}
-
-/* ---------------------------------------------------------------------------
-   STEP 3 — KL divergence
-
-   The prior annotations carry over from Step 2. The distance line is kept but
-   de-emphasized, because in Step 3 it is supporting evidence for the location
-   component rather than the subject itself.
---------------------------------------------------------------------------- */
-
-body.reveal-step-3 #distance-line {
-  opacity: 0.55;
-}
-
-body.reveal-step-3 #prior-density {
-  opacity: 0.7;
-}
-
-.kl-concept {
-  margin: 0 0 0.7rem;
-  padding: 0.5rem 0.6rem;
-  background: rgba(127, 227, 255, 0.12);
-  border: 1px solid rgba(127, 227, 255, 0.4);
-  border-radius: 0.3rem;
-  font-size: 0.72rem;
-  font-weight: 700;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  text-align: center;
-  color: #d6f4ff;
-}
-
-.kl-cards {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr auto 1fr;
-  align-items: stretch;
-  gap: 0.4rem;
-  margin-bottom: 0.7rem;
-}
-
-.kl-card {
-  padding: 0.45rem 0.55rem 0.5rem;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(160, 200, 255, 0.25);
-  border-radius: 0.3rem;
-}
-
-/* The total is the sum, so it reads as the conclusion of the row. */
-.kl-card--total {
-  background: rgba(127, 227, 255, 0.12);
-  border-color: rgba(127, 227, 255, 0.45);
-}
-
-.kl-card-heading {
-  display: flex;
-  align-items: center;
-  gap: 0.3rem;
-  margin: 0 0 0.25rem;
-  font-size: 0.6rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: #eaf4ff;
-}
-
-.kl-card-value {
-  display: block;
-  font-size: 1.05rem;
-  font-weight: 700;
-  font-variant-numeric: tabular-nums;
-  color: #ffe6a0;
-}
-
-.kl-card--total .kl-card-value {
-  color: #b6efff;
-}
-
-.kl-card-units {
-  font-size: 0.62rem;
-  color: rgba(220, 238, 250, 0.7);
-}
-
-.kl-card-text,
-.kl-card-support,
-.kl-card-note {
-  margin: 0.25rem 0 0;
-  font-size: 0.66rem;
-  line-height: 1.35;
-  color: rgba(220, 238, 250, 0.82);
-}
-
-.kl-card-support {
-  font-variant-numeric: tabular-nums;
-  color: #d6f4ff;
-}
-
-.kl-card-note {
-  color: rgba(220, 238, 250, 0.62);
-}
-
-.kl-operator {
-  align-self: center;
+.reveal-explain {
+  grid-area: 1 / 1;
   margin: 0;
-  font-size: 1rem;
+  font-size: 0.76rem;
+  line-height: 1.5;
+  color: rgba(220, 238, 250, 0.88);
+  opacity: 0;
+  visibility: hidden;
+}
+
+.reveal-explain[data-term="default"] {
+  font-size: 0.72rem;
+  color: rgba(220, 238, 250, 0.72);
+  opacity: 1;
+  visibility: visible;
+}
+
+body.hover-reconstruction .reveal-explain[data-term="default"],
+body.hover-kl .reveal-explain[data-term="default"],
+body.hover-beta .reveal-explain[data-term="default"] {
+  opacity: 0;
+  visibility: hidden;
+}
+
+body.hover-reconstruction .reveal-explain[data-term="reconstruction"],
+body.hover-kl .reveal-explain[data-term="kl"],
+body.hover-beta .reveal-explain[data-term="beta"] {
+  opacity: 1;
+  visibility: visible;
+}
+
+.reveal-explain strong {
+  color: #ffe6a0;
   font-weight: 700;
-  color: #7fe3ff;
-}
-
-.formula-heading {
-  margin: 0.6rem 0 0.2rem;
-  font-size: 0.62rem;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: #a9d4ff;
-}
-
-/* A filled square: a fourth shape, distinct from the cross, dashed line and
-   ring already in use, so the three cards never depend on colour. */
-.param-key--total::before {
-  content: "";
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  width: 0.6rem;
-  height: 0.6rem;
-  background: #ffe6a0;
-  transform: translate(-50%, -50%);
-}
-
-/* Narrow screens: stack in reading order, operators still between the cards. */
-@media (max-width: 40rem) {
-  .kl-cards {
-    grid-template-columns: 1fr;
-    gap: 0.3rem;
-  }
-
-  .kl-operator {
-    justify-self: center;
-  }
 }
 
 /* ---------------------------------------------------------------------------
@@ -1172,12 +653,12 @@ body.reveal-step-3 #prior-density {
   right: 2.5%;
   bottom: 6%;
   z-index: 12;
-  padding: 0.45rem 0.9rem;
+  max-width: 12rem;
+  padding: 0.5rem 0.9rem;
   font: inherit;
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 700;
-  letter-spacing: 0.14em;
-  text-transform: uppercase;
+  letter-spacing: 0.02em;
   color: #7fe3ff;
   background: rgba(9, 32, 78, 0.85);
   border: 1px solid rgba(127, 227, 255, 0.5);
@@ -1218,40 +699,35 @@ body.reveal-step-3 #prior-density {
   pointer-events: none;
 }
 
-/* Title and hint share a row, matching the wireframe. */
+/* Title and byline share a row; the hint sits on its own line beneath. */
 .status-line {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
-  gap: 0.35rem 0.85rem;
+  gap: 0.25rem 0.6rem;
 }
 
 #status-panel h1 {
   margin: 0;
-  font-size: 0.72rem;
+  font-size: 1.05rem;
   font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+  letter-spacing: 0.01em;
+}
+
+.byline {
+  margin: 0;
+  font-size: 0.66rem;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  color: rgba(220, 238, 250, 0.6);
   white-space: nowrap;
 }
 
-#status-panel p {
-  margin: 0;
+#status-panel .hint {
+  margin: 0.3rem 0 0;
   font-size: 0.78rem;
   line-height: 1.45;
-}
-
-#status-panel .hint {
   color: rgba(220, 238, 250, 0.9);
-}
-
-/* Pushed to the trailing edge when there is room, wrapping underneath when
-   there is not. */
-#status-panel #overlap-readout {
-  margin-left: auto;
-  color: #a9d4ff;
-  font-size: 0.72rem;
-  text-align: right;
 }
 
 /* Available to screen readers, not shown on screen. */
@@ -1370,10 +846,6 @@ body.reveal-step-3 #prior-density {
     font-size: 0.62rem;
   }
 
-  .hud-panel.is-unevaluated .hud-value {
-    font-size: 0.58rem;
-  }
-
   .hud-bar {
     height: 0.35rem;
   }
@@ -1383,19 +855,16 @@ body.reveal-step-3 #prior-density {
   }
 
   #status-panel h1 {
-    font-size: 0.62rem;
-    letter-spacing: 0.1em;
+    font-size: 0.82rem;
   }
 
-  #status-panel p {
+  .byline {
+    font-size: 0.58rem;
+  }
+
+  #status-panel .hint {
     font-size: 0.68rem;
     line-height: 1.35;
-  }
-
-  #status-panel #overlap-readout {
-    margin-left: 0;
-    text-align: left;
-    font-size: 0.64rem;
   }
 
 }
@@ -1419,9 +888,8 @@ body.reveal-step-3 #prior-density {
     padding: 0.28rem 0.55rem 0.35rem;
   }
 
-  .reef-penalty-label {
-    margin-bottom: 0.2rem;
-    font-size: 0.6rem;
+  .reef-penalty-end {
+    font-size: 0.58rem;
   }
 
   .hud-panel-head {

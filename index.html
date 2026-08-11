@@ -11,21 +11,26 @@
     <!--
       Three measurement panels down the left edge.
 
-      Reef Overlap    — position relative to the reef.
-      Neighbour Compatibility — shape similarity of the clouds that overlap
-                        each other. Not a second measure of how much.
-      Configuration Score — judges the whole four-cloud arrangement, rewarding
-                        area inside the reef and penalising incompatible
-                        cloud-to-cloud overlap.
+      Safety (Reef Overlap)         — area of the clouds that lies inside the
+                                       reef, as a fraction of total cloud area.
+      Exclusivity (Neighbour        — the inverse: area of incompatible
+        Incompatibility)              cloud-to-cloud overlap, as a fraction of
+                                       the worst case for these cloud sizes.
+      Reef Harmony                  — a weighted combination of the two above,
+                                       weighted by the Reef Penalty slider.
 
-      All three meanings are kept deliberately separate. The Configuration
-      Score is a designed educational score, not the loss function of a
-      trained VAE.
+      All three are area-based and continuous — see METRIC 1/2/3 in app.js.
+      Reef Harmony is a designed educational score, not the loss function of
+      a trained VAE — see the "Training loss" term in Reveal Mode for how it
+      maps onto that idea.
     -->
     <div id="hud" role="group" aria-label="Latent space measurements">
-      <section class="hud-panel">
+      <section class="hud-panel" id="reef-overlap-panel">
         <div class="hud-panel-head">
-          <h2 class="hud-label" id="reef-overlap-label">Reef Overlap</h2>
+          <h2 class="hud-label" id="reef-overlap-label">
+            Safety
+            <span class="hud-label-sub">Reef overlap</span>
+          </h2>
           <p class="hud-value" id="reef-overlap-value">0%</p>
         </div>
         <div
@@ -42,10 +47,13 @@
         </div>
       </section>
 
-      <section class="hud-panel is-unevaluated" id="compatibility-panel">
+      <section class="hud-panel" id="compatibility-panel">
         <div class="hud-panel-head">
-          <h2 class="hud-label" id="compatibility-label">Neighbour Compatibility</h2>
-          <p class="hud-value" id="compatibility-value">No overlap</p>
+          <h2 class="hud-label" id="compatibility-label">
+            Exclusivity
+            <span class="hud-label-sub">Neighbour incompatibility</span>
+          </h2>
+          <p class="hud-value" id="compatibility-value">100%</p>
         </div>
         <div
           class="hud-bar"
@@ -54,7 +62,8 @@
           aria-labelledby="compatibility-label"
           aria-valuemin="0"
           aria-valuemax="100"
-          aria-valuetext="No overlap"
+          aria-valuenow="100"
+          aria-valuetext="100 percent"
         >
           <div class="hud-bar-fill" id="compatibility-fill"></div>
         </div>
@@ -62,7 +71,7 @@
 
       <section class="hud-panel hud-panel--score" id="configuration-panel">
         <div class="hud-panel-head">
-          <h2 class="hud-label" id="configuration-label">Configuration Score</h2>
+          <h2 class="hud-label" id="configuration-label">Reef Harmony</h2>
           <p class="hud-value" id="configuration-value">0%</p>
         </div>
         <div
@@ -79,20 +88,20 @@
           <div class="hud-bar-fill" id="configuration-fill"></div>
         </div>
         <p id="configuration-description" class="visually-hidden">
-          A designed educational score for the whole arrangement. It rewards cloud
-          area inside the reef and reduces that reward where clouds of different
-          body shapes overlap each other. It is not the loss function of a trained
-          model.
+          A designed educational score for the whole arrangement. It is a
+          weighted average of the Safety and Exclusivity measurements above,
+          weighted by the Reef Penalty slider. It is not the loss function of
+          a trained model.
         </p>
       </section>
     </div>
 
     <aside id="status-panel">
       <div class="status-line">
-        <h1>Latent Ocean</h1>
-        <p class="hint">Drag a cloud, or press Tab to select one and move it with the arrow keys.</p>
-        <p id="overlap-readout" aria-live="polite">No clouds are currently overlapping.</p>
+        <h1>Latent Ocean: VAEs as a Tale of Competing Overlaps</h1>
+        <p class="byline">Ray Sama &amp; Kieran Murphy, NJIT</p>
       </div>
+      <p class="hint">Drag a cloud, or press Tab to select one and move it with the arrow keys.</p>
     </aside>
 
     <!--
@@ -119,11 +128,8 @@
         alters the reef, changes the other two metrics, or simulates training.
       -->
       <div id="reef-penalty" class="reef-penalty">
-        <label class="reef-penalty-label" for="reef-penalty-input">
-          Reef Penalty <span class="beta-glyph" aria-hidden="true">&beta;</span>
-        </label>
         <div class="reef-penalty-row">
-          <span class="reef-penalty-end" aria-hidden="true">0</span>
+          <span class="reef-penalty-end">Prioritize safety</span>
           <input
             type="range"
             id="reef-penalty-input"
@@ -131,15 +137,16 @@
             max="1"
             step="0.01"
             value="0.50"
+            aria-label="Reef Penalty"
             aria-describedby="reef-penalty-description"
           >
-          <span class="reef-penalty-end" aria-hidden="true">1</span>
-          <output id="reef-penalty-value" for="reef-penalty-input">&beta; = 0.50</output>
+          <span class="reef-penalty-end">Prioritize exclusivity</span>
         </div>
         <p id="reef-penalty-description" class="visually-hidden">
-          Controls how strongly incompatible cloud overlap reduces the
-          Configuration Score. It does not move the clouds or change the other
-          measurements.
+          Controls how strongly incompatible cloud overlap reduces the Reef
+          Harmony Score, from 0 (prioritizing safety, reef overlap alone) to 1
+          (prioritizing exclusivity, fully penalizing incompatible overlap).
+          It does not move the clouds or change the other measurements.
         </p>
       </div>
 
@@ -150,425 +157,108 @@
         aria-expanded="false"
         aria-controls="reveal-panel"
       >
-        Reveal the Model
+        What's the connection with VAEs?
       </button>
     </div>
 
     <!-- Referenced by every cloud via aria-describedby. -->
     <p id="cloud-keyboard-help" class="visually-hidden">
       Press the arrow keys to move this cloud through the latent space. Hold Shift
-      with an arrow key to move further in one step. The Reef Overlap and Neighbour
-      Compatibility measurements update as it moves.
+      with an arrow key to move further in one step. The Safety and Exclusivity
+      measurements update as it moves.
     </p>
 
     <!--
-      REVEAL MODE — Explainer Step 1 only.
+      REVEAL MODE
 
-      Deliberately not a focus-trapping dialog. The clouds must stay reachable
-      and draggable while it is open, which a trap would prevent. Escape closes
-      it and focus returns to the button that opened it.
+      A single panel showing the beta-VAE loss as a competition between two
+      overlaps. Deliberately not a focus-trapping dialog: the clouds must stay
+      reachable and draggable while it is open, which a trap would prevent.
+      The #reveal-model button is a toggle — it opens and closes the panel,
+      relabeling itself between the two states — and Escape also closes it,
+      returning focus to the button either way.
+
+      Hovering or focusing a term in the formula highlights what it
+      corresponds to elsewhere on screen, driven by body.hover-harmony /
+      .hover-reconstruction / .hover-kl / .hover-beta in style.css:
+
+        Training loss term   -> the Reef Harmony panel
+        reconstruction term  -> the Exclusivity panel + any cloud circles
+                                overlapping each other
+        KL term               -> the Safety panel + any cloud circles
+                                overlapping the reef
+        beta                  -> the Reef Penalty control
     -->
     <section
       id="reveal-panel"
       class="reveal-panel"
-      aria-labelledby="reveal-step-label"
-      data-step="1"
+      aria-labelledby="reveal-heading"
       hidden
     >
-      <div class="reveal-head">
-        <p class="reveal-step" id="reveal-step-label">Step 1 — Encoded Distributions</p>
-        <button type="button" id="reveal-close" class="reveal-close">Return to ocean</button>
-      </div>
-
-      <!-- ============================ STEP 1 ============================ -->
-      <div class="reveal-step-body" id="reveal-step-1">
-
       <h2 id="reveal-heading" class="reveal-heading" tabindex="-1">
-        A fish image is encoded as a distribution
+        VAEs: A tale of two overlaps
       </h2>
 
       <p class="reveal-body">
-        A VAE encoder does not assign this fish one exact latent position. It
-        produces a distribution of possible positions.
+        Training a VAE balances two competing overlaps: how well a decoded
+        image reconstructs the original, and how closely each encoded
+        distribution overlaps the prior. Beta decides how much the second
+        overlap is allowed to cost the first.
       </p>
 
-      <p class="reveal-process">
-        <span>Fish image <em>x</em></span>
-        <span class="reveal-arrow" aria-hidden="true">&rarr;</span>
-        <span>Encoder</span>
-        <span class="reveal-arrow" aria-hidden="true">&rarr;</span>
-        <span>Latent distribution <em>q</em><sub>&phi;</sub>(<em>z</em>|<em>x</em>)</span>
+      <p class="reveal-formula">
+        <span class="loss-term" id="term-harmony" tabindex="0">
+          Training loss
+        </span>
+        <span class="loss-op" aria-hidden="true">=</span>
+        <span class="loss-term" id="term-reconstruction" tabindex="0">
+          Reconstruction loss
+        </span>
+        <span class="loss-op" aria-hidden="true">+</span>
+        <span class="loss-term" id="term-beta" tabindex="0">
+          <span class="beta-glyph" aria-hidden="true">&beta;</span>
+          <span class="visually-hidden">beta</span>
+        </span>
+        <span class="loss-op" aria-hidden="true">&middot;</span>
+        <span class="loss-term" id="term-kl" tabindex="0">
+          <em>D</em><sub>KL</sub>(<em>q</em><sub>&phi;</sub>(<em>z</em>|<em>x</em>)
+          &#8214; <em>p</em>(<em>z</em>))
+        </span>
       </p>
 
-      <p class="reveal-selected">
-        Showing: <strong id="reveal-selected-name">Round Orange Fish</strong>
-      </p>
-
-      <dl class="reveal-params">
-        <div class="reveal-param">
-          <dt>
-            <span class="param-key param-key--mu" aria-hidden="true"></span>
-            Mean &mu;
-          </dt>
-          <dd>
-            <output id="mu-value" class="param-value">(0.00, 0.00)</output>
-            <span class="param-note">The expected latent position.</span>
-          </dd>
-        </div>
-        <div class="reveal-param">
-          <dt>
-            <span class="param-key param-key--sigma" aria-hidden="true"></span>
-            Spread &sigma;
-          </dt>
-          <dd>
-            <output id="sigma-value" class="param-value">0.00</output>
-            <span class="param-note">How widely its possible latent positions are distributed.</span>
-          </dd>
-        </div>
-      </dl>
-
-      <p class="reveal-note">Dragging changes &mu; manually in this simulation.</p>
-
-      <details class="reveal-math">
-        <summary>Show the math</summary>
-        <div class="reveal-math-body">
-          <p class="formula">
-            <em>q</em><sub>&phi;</sub>(<em>z</em>|<em>x</em>) =
-            <em>N</em>(&mu;<sub>&phi;</sub>(<em>x</em>),
-            &sigma;<sub>&phi;</sub><sup>2</sup>(<em>x</em>)<em>I</em>)
-          </p>
-          <p class="formula">&mu; = <span id="math-mu">(0.00, 0.00)</span></p>
-          <p class="formula">&sigma; = <span id="math-sigma">0.00</span></p>
-          <p>
-            This tutorial uses a circular 2D Gaussian. Real VAEs usually use more
-            dimensions and may have a different spread in each dimension.
-          </p>
-        </div>
-      </details>
-
-      <p class="reveal-caveat">
-        The drawn circle is a visual contour, not a hard edge. The Gaussian
-        distribution continues beyond it.
-      </p>
-      <p class="reveal-caveat">
-        Latent Ocean uses designed fish examples. A neural-network encoder is not
-        running on the images.
-      </p>
-      <p class="reveal-caveat reveal-caveat--hint">
-        Select another fish by clicking its cloud, or focusing it and pressing
-        Enter or Space.
-      </p>
-
-      <div class="reveal-nav">
-        <button type="button" id="to-step-2" class="reveal-nav-button">
-          Next: The Prior
-        </button>
+      <!--
+        All four paragraphs occupy the same grid cell (see .reveal-explain in
+        style.css), stacked and swapped by opacity/visibility rather than by
+        toggling display. The cell's height is therefore always the tallest
+        of the four and never changes as the hovered term changes — display
+        toggling here previously let the panel resize and recentre itself
+        on hover, which shifted the term the pointer was over and caused
+        hover/focus to flicker or need a couple of tries to register.
+      -->
+      <div class="reveal-explain-list">
+        <p class="reveal-explain" data-term="default">
+          Hover or focus a term above to see what it corresponds to in the scene.
+        </p>
+        <p class="reveal-explain" data-term="reconstruction">
+          <strong>Reconstruction loss.</strong> Representation overlap is
+          where information is lost, and reconstruction errors are forced.
+          The hit is worse for more dissimilar inputs than it is for more
+          similar ones.
+        </p>
+        <p class="reveal-explain" data-term="kl">
+          <strong>KL divergence.</strong> The KL divergence term pushes all
+          representations to match the prior distribution <em>p</em>(<em>z</em>),
+          here shown as the reef.
+        </p>
+        <p class="reveal-explain" data-term="beta">
+          <strong><span class="beta-glyph" aria-hidden="true">&beta;</span><span class="visually-hidden">Beta</span>.</strong>
+          The coefficient &beta; sets the prioritization and has two intuitive
+          extremes: prioritize information restriction, where all
+          representations become the prior and therefore the same, and
+          information transmission, where all representations are completely
+          separated and therefore distinct.
+        </p>
       </div>
-
-      </div>
-      <!-- ========================== END STEP 1 ========================== -->
-
-      <!-- ============================ STEP 2 ============================ -->
-      <div class="reveal-step-body" id="reveal-step-2" hidden>
-
-      <h2 id="step-2-heading" class="reveal-heading" tabindex="-1">
-        The reef visualizes the prior
-      </h2>
-
-      <p class="reveal-body">
-        A VAE compares each encoded distribution with a shared reference
-        distribution called the prior. Here, the prior is a standard normal
-        distribution centered at the reef.
-      </p>
-
-      <p class="reveal-body reveal-definition">
-        The prior is the reference shape that the model is encouraged to organize
-        its latent distributions toward.
-      </p>
-
-      <p class="reveal-process">
-        <span>Encoded distribution <em>q</em><sub>&phi;</sub>(<em>z</em>|<em>x</em>)</span>
-        <span class="reveal-arrow" aria-hidden="true">&rarr;</span>
-        <span>compared with</span>
-        <span class="reveal-arrow" aria-hidden="true">&rarr;</span>
-        <span>Prior <em>p</em>(<em>z</em>)</span>
-      </p>
-
-      <p class="reveal-selected">
-        Showing: <strong id="step-2-selected-name">Round Orange Fish</strong>
-      </p>
-
-      <dl class="reveal-params">
-        <div class="reveal-param">
-          <dt>
-            <span class="param-key param-key--prior" aria-hidden="true"></span>
-            Prior mean (0,0)
-          </dt>
-          <dd>
-            <span class="param-note">The center of the shared reference distribution.</span>
-          </dd>
-        </div>
-
-        <div class="reveal-param">
-          <dt>
-            <span class="param-key param-key--mu" aria-hidden="true"></span>
-            Encoded mean &mu;
-          </dt>
-          <dd>
-            <output id="step-2-mu" class="param-value">(0.00, 0.00)</output>
-          </dd>
-        </div>
-
-        <div class="reveal-param">
-          <dt>
-            <span class="param-key param-key--distance" aria-hidden="true"></span>
-            Distance from prior mean <em>d</em>
-          </dt>
-          <dd>
-            <output id="distance-value" class="param-value">0.00</output>
-            <span class="param-note">
-              Moving farther from the reef center increases the location part of
-              prior mismatch.
-            </span>
-          </dd>
-        </div>
-
-        <div class="reveal-param">
-          <dt>
-            <span class="param-key param-key--sigma" aria-hidden="true"></span>
-            Spread &sigma;
-          </dt>
-          <dd>
-            <output id="step-2-sigma" class="param-value">0.00</output>
-            <span class="param-note">
-              Distance is not the complete mismatch. The distribution&rsquo;s
-              spread &sigma; also matters.
-            </span>
-          </dd>
-        </div>
-      </dl>
-
-      <p class="reveal-note">
-        Drag the selected distribution and watch its distance from the prior mean
-        change.
-      </p>
-
-      <details class="reveal-math">
-        <summary>Show the math</summary>
-        <div class="reveal-math-body">
-          <p class="formula"><em>p</em>(<em>z</em>) = <em>N</em>(0, <em>I</em>)</p>
-          <p class="formula">&mu;<sub>prior</sub> = (0, 0)</p>
-          <p class="formula">&sigma;<sub>prior</sub> = 1</p>
-          <p class="formula">
-            <em>d</em> = &radic;((&mu;<sub>1</sub> &minus; &mu;<sub>prior,1</sub>)<sup>2</sup>
-            + (&mu;<sub>2</sub> &minus; &mu;<sub>prior,2</sub>)<sup>2</sup>)
-          </p>
-          <p class="formula">
-            <em>d</em> = &radic;(&mu;<sub>1</sub><sup>2</sup> + &mu;<sub>2</sub><sup>2</sup>)
-          </p>
-          <p class="formula">&mu; = <span id="math-step2-mu">(0.00, 0.00)</span></p>
-          <p class="formula">&sigma; = <span id="math-step2-sigma">0.00</span></p>
-          <p class="formula"><em>d</em> = <span id="math-step2-d">0.00</span></p>
-          <p>
-            The distance <em>d</em> measures how far the encoded mean is from the
-            prior mean. It does not yet include spread mismatch, so it is not the
-            complete KL divergence.
-          </p>
-          <p class="reveal-secondary">
-            The identity matrix <em>I</em> means the displayed prior has unit
-            variance in both latent dimensions and no correlation between them.
-          </p>
-        </div>
-      </details>
-
-      <p class="reveal-caveat">
-        In this tutorial, the reef radius equals one latent unit, matching one
-        standard-deviation unit of the prior along any direction. It is a
-        reference contour, not a boundary; the prior continues smoothly beyond it.
-      </p>
-      <p class="reveal-caveat">
-        The rings in the artwork are qualitative density guides, not exact
-        probability boundaries.
-      </p>
-      <p class="reveal-caveat">
-        The tutorial lets you move designed distributions manually. A
-        neural-network encoder is not repositioning them.
-      </p>
-      <p class="reveal-caveat">
-        Next, KL divergence will combine location and spread into one measure of
-        prior mismatch.
-      </p>
-
-      <div class="reveal-nav">
-        <button type="button" id="to-step-1" class="reveal-nav-button reveal-nav-button--back">
-          Back: Encoded Distributions
-        </button>
-        <button type="button" id="to-step-3" class="reveal-nav-button">
-          Next: KL Divergence
-        </button>
-      </div>
-
-      </div>
-      <!-- ========================== END STEP 2 ========================== -->
-
-      <!-- ============================ STEP 3 ============================ -->
-      <div class="reveal-step-body" id="reveal-step-3" hidden>
-
-      <h2 id="step-3-heading" class="reveal-heading" tabindex="-1">
-        KL divergence measures that mismatch
-      </h2>
-
-      <p class="reveal-body">
-        An encoded distribution can differ from the prior in two ways: its mean
-        can be in a different location, and its spread can have a different size.
-      </p>
-
-      <p class="kl-concept">
-        KL divergence = location mismatch + spread mismatch
-      </p>
-
-      <p class="reveal-selected">
-        Showing: <strong id="step-3-selected-name">Round Orange Fish</strong>
-      </p>
-
-      <div class="kl-cards">
-        <section class="kl-card" aria-labelledby="kl-location-heading">
-          <h3 class="kl-card-heading" id="kl-location-heading">
-            <span class="param-key param-key--mu" aria-hidden="true"></span>
-            Location mismatch
-          </h3>
-          <output id="kl-location" class="kl-card-value">0.00</output>
-          <p class="kl-card-text">
-            How much the encoded mean&rsquo;s position contributes to the mismatch.
-          </p>
-          <p class="kl-card-support">
-            <em>d</em> = <span id="kl-distance">0.00</span>
-          </p>
-          <p class="kl-card-note">Moving the distribution changes this component.</p>
-        </section>
-
-        <p class="kl-operator" aria-hidden="true">+</p>
-
-        <section class="kl-card" aria-labelledby="kl-spread-heading">
-          <h3 class="kl-card-heading" id="kl-spread-heading">
-            <span class="param-key param-key--sigma" aria-hidden="true"></span>
-            Spread mismatch
-          </h3>
-          <output id="kl-spread" class="kl-card-value">0.00</output>
-          <p class="kl-card-text">
-            How much the encoded spread differs from the prior spread of 1.
-          </p>
-          <p class="kl-card-support">
-            &sigma; = <span id="kl-sigma">0.00</span>
-            &middot; &sigma;<sub>prior</sub> = 1
-          </p>
-          <p class="kl-card-note">
-            Moving the distribution without resizing it does not change this
-            component.
-          </p>
-        </section>
-
-        <p class="kl-operator" aria-hidden="true">=</p>
-
-        <section class="kl-card kl-card--total" aria-labelledby="kl-total-heading">
-          <h3 class="kl-card-heading" id="kl-total-heading">
-            <span class="param-key param-key--total" aria-hidden="true"></span>
-            KL divergence
-          </h3>
-          <output id="kl-total" class="kl-card-value">0.00</output>
-          <span class="kl-card-units">nats</span>
-          <p class="kl-card-text">
-            KL divergence combines the location and spread contributions into one
-            non-negative value.
-          </p>
-        </section>
-      </div>
-
-      <p class="reveal-note">
-        Drag the selected distribution. Its location mismatch changes while its
-        spread mismatch stays fixed.
-      </p>
-
-      <details class="reveal-math" id="kl-equation-disclosure">
-        <summary>Show the full equation</summary>
-        <div class="reveal-math-body">
-          <p class="formula">
-            <em>D</em><sub>KL</sub>(<em>q</em><sub>&phi;</sub>(<em>z</em>|<em>x</em>)
-            &#8214; <em>p</em>(<em>z</em>))
-          </p>
-          <p class="formula">
-            = &frac12;[&mu;<sub>1</sub><sup>2</sup> + &mu;<sub>2</sub><sup>2</sup>
-            + 2(&sigma;<sup>2</sup> &minus; 1 &minus; ln(&sigma;<sup>2</sup>))]
-          </p>
-
-          <p class="formula-heading">Location mismatch</p>
-          <p class="formula">
-            &frac12;(&mu;<sub>1</sub><sup>2</sup> + &mu;<sub>2</sub><sup>2</sup>)
-            = &frac12;<em>d</em><sup>2</sup>
-          </p>
-
-          <p class="formula-heading">Spread mismatch</p>
-          <p class="formula">
-            &sigma;<sup>2</sup> &minus; 1 &minus; ln(&sigma;<sup>2</sup>)
-          </p>
-
-          <p class="formula-heading">Total</p>
-          <p class="formula">
-            <em>D</em><sub>KL</sub> = location mismatch + spread mismatch
-          </p>
-
-          <p class="formula-heading">With the current values</p>
-          <p class="formula">&mu; = <span id="kl-math-mu">(0.00, 0.00)</span></p>
-          <p class="formula">&sigma; = <span id="kl-math-sigma">0.00</span></p>
-          <p class="formula">Location mismatch = <span id="kl-math-location">0.00</span></p>
-          <p class="formula">Spread mismatch = <span id="kl-math-spread">0.00</span></p>
-          <p class="formula">
-            KL divergence = <span id="kl-math-total">0.00</span> nats
-          </p>
-
-          <p>
-            The logarithm is the natural logarithm, so the result is expressed in
-            nats.
-          </p>
-          <p class="reveal-secondary">
-            Each value above is rounded to two decimal places independently, so
-            the two components may not appear to add up exactly to the total. The
-            total is calculated at full precision.
-          </p>
-          <p class="reveal-secondary">
-            This is <em>D</em><sub>KL</sub>(<em>q</em><sub>&phi;</sub>(<em>z</em>|<em>x</em>)
-            &#8214; <em>p</em>(<em>z</em>)). KL divergence has a direction and is
-            not a symmetric geometric distance.
-          </p>
-        </div>
-      </details>
-
-      <p class="reveal-caveat">
-        At the reef center, location mismatch is zero. KL divergence can still
-        remain above zero when &sigma; is not 1.
-      </p>
-      <p class="reveal-caveat">
-        KL divergence reaches zero only when &mu; = (0,0) and &sigma; = 1.
-      </p>
-      <p class="reveal-caveat">
-        The reef is a reference contour, not a boundary. The prior continues
-        smoothly beyond it.
-      </p>
-      <p class="reveal-caveat">
-        You are moving a designed distribution manually. A neural-network encoder
-        is not running during the interaction.
-      </p>
-
-      <div class="reveal-nav">
-        <button type="button" id="to-step-2-back" class="reveal-nav-button reveal-nav-button--back">
-          Back: The Prior
-        </button>
-      </div>
-
-      </div>
-      <!-- ========================== END STEP 3 ========================== -->
-
-      <p id="posterior-announcement" class="visually-hidden" aria-live="polite"></p>
     </section>
 
     <noscript>
