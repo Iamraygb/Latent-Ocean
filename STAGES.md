@@ -23,6 +23,7 @@ any similarity values are authored by hand to illustrate the concepts.
 | 10B | Reveal Mode, step 2: the prior | `stage-10b` | [stages/stage-10b-reveal-step2](stages/stage-10b-reveal-step2/) | Complete |
 | 10C | Reveal Mode, step 3: KL divergence | `stage-10c` | [stages/stage-10c-kl-divergence](stages/stage-10c-kl-divergence/) | Complete |
 | 10D | Reveal Mode, step 4: Beta weight | `stage-10d` | [stages/stage-10d-beta-weight](stages/stage-10d-beta-weight/) | Complete |
+| 10E | Reveal Mode, step 5: two training pressures | `stage-10e` | [stages/stage-10e-two-pressures](stages/stage-10e-two-pressures/) | Complete |
 | — | Custom Animate UI graphics | — | — | Deferred |
 
 ## How to revisit a stage
