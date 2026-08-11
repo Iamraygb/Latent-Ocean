@@ -11,11 +11,14 @@ the full objective.
 The prior is `p(z) = N(0, I)`: a simplified two-dimensional standard normal
 centred on the reef, with unit variance in each displayed dimension.
 
-**A useful consequence, stated in the copy rather than left implicit:** one reef
-radius is one latent unit and `sigma_prior = 1`, so the reef circle is exactly
-the **one-standard-deviation contour** of the prior. It is a reference contour,
-not a boundary. The density fade deliberately extends to 150% of world width so
-the artwork cannot be read as the prior stopping at the reef edge.
+**A useful consequence, stated in the copy rather than left implicit:** the reef
+radius equals one latent unit, which matches one standard-deviation unit of the
+prior along any direction. It is a reference contour, not a boundary. The
+density fade deliberately extends to 150% of world width so the artwork cannot
+be read as the prior stopping at the reef edge.
+
+*(Wording revised in Stage 10C. The earlier phrasing called the reef circle "the
+one-standard-deviation contour of the prior", which overstated the case.)*
 
 The artwork's outer rings are decorative and not mathematically spaced, so the
 copy calls them **qualitative density guides** and never attaches probability
