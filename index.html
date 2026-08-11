@@ -4,6 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
   <title>Latent Ocean</title>
+  <!--
+    Roboto Light (300) and Light Italic, for the Murphy Lab lockup only. This is
+    the project's one external request; everything else is self-contained. The
+    CSS falls back to a comparable sans if it does not load.
+  -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,300;1,300&display=swap"
+    rel="stylesheet"
+  >
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -109,9 +120,30 @@
     <aside id="status-panel">
       <div class="status-line">
         <h1>Latent Ocean: VAEs as a Tale of Competing Overlaps</h1>
-        <p class="byline">Ray Sama &amp; Kieran Murphy, NJIT</p>
+
+        <!-- The lab lockup keeps the site's own colours: black on white. -->
+        <a
+          class="lab-link"
+          href="https://kieranamurphy.com/"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <header class="lab-header">
+            <h1 class="post-title">The Murphy Lab</h1>
+            <p class="desc">
+              <em>Shaping information with machine learning.</em>
+            </p>
+          </header>
+        </a>
       </div>
+
       <p class="hint">Drag a cloud, or press Tab to select one and move it with the arrow keys.</p>
+
+      <p class="credit">
+        Designed by
+        <a href="https://linkedin.com/in/raysama" target="_blank" rel="noopener noreferrer">Ray Sama</a>
+        &amp; Kieran Murphy
+      </p>
     </aside>
 
     <!--
