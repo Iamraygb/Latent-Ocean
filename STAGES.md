@@ -18,6 +18,8 @@ any similarity values are authored by hand to illustrate the concepts.
 | 06 | Keyboard accessibility | `stage-06` | [stages/stage-06-keyboard-accessibility](stages/stage-06-keyboard-accessibility/) | Complete |
 | 07 | Visual polish and motion | `stage-07` | [stages/stage-07-visual-polish](stages/stage-07-visual-polish/) | Complete |
 | 08 | Explainer panel repositioned | `stage-08` | [stages/stage-08-explainer-reposition](stages/stage-08-explainer-reposition/) | Complete |
+| 09 | Configuration Score and Reef Penalty | `stage-09` | [stages/stage-09-configuration-score](stages/stage-09-configuration-score/) | Complete |
+| 10 | Custom Animate UI graphics | — | — | Planned |
 
 ## How to revisit a stage
 
@@ -103,6 +105,13 @@ inside the reef, the central prior region.
 of the designed similarity scores for the pairs that currently overlap each other.
 It is not a second measurement of how much they overlap. Reef overlap contributes
 nothing to it.
+
+**Configuration Score** judges the *whole arrangement*: `100 × R × (1 − βI)`, where
+R is Reef Overlap as a decimal, I is normalized incompatibility across all six
+pairs, and β is the user-controlled Reef Penalty. Reef Overlap sets the reward
+available, incompatible overlap removes part of it, and β decides how much. It is
+a **designed educational score, not the loss function of a trained VAE**, and it is
+not an average of the other two metrics.
 
 Similarity scores are **designed demonstration values based on body shape**, set by
 hand in `CONFIG.similarity`. The page never analyses the images, and no value comes
