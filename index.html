@@ -118,11 +118,6 @@
     </div>
 
     <aside id="status-panel">
-      <!--
-        One row: all three text lines in a column on the left, the lab lockup
-        beside them. The bar's height is then whichever of the two is taller,
-        rather than the lockup's height plus two stacked lines beneath it.
-      -->
       <div class="status-line">
         <div class="status-text">
           <h1>Latent Ocean: VAEs as a Tale of Competing Overlaps</h1>
@@ -135,26 +130,6 @@
             &amp; <em>Kieran Murphy</em>, New Jersey Institute of Technology
           </p>
         </div>
-
-        <!-- The lab lockup keeps the site's own colours: black on white. -->
-        <a
-          class="lab-link"
-          href="https://kieranamurphy.com/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <!--
-            The lab name is an attribution lockup, not a heading of this
-            tutorial, so it is a <p> rather than a second <h1>. The class and
-            the rendered appearance are unchanged.
-          -->
-          <header class="lab-header">
-            <p class="post-title">The Murphy Lab</p>
-            <p class="desc">
-              <em>Shaping information with machine learning.</em>
-            </p>
-          </header>
-        </a>
       </div>
     </aside>
 
@@ -324,6 +299,30 @@
       </p>
     </noscript>
   </main>
+
+  <!--
+    The lab lockup keeps the site's own colours: black on white. It lives
+    outside #status-panel (and its transform) so "position: fixed" below
+    anchors to the viewport corner rather than to the title bar.
+  -->
+  <a
+    class="lab-link"
+    href="https://kieranamurphy.com/"
+    target="_blank"
+    rel="noopener noreferrer"
+  >
+    <!--
+      The lab name is an attribution lockup, not a heading of this tutorial,
+      so it is a <p> rather than an <h1>. The class and the rendered
+      appearance are unchanged.
+    -->
+    <header class="lab-header">
+      <p class="post-title">The Murphy Lab</p>
+      <p class="desc">
+        <em>Shaping information with machine learning.</em>
+      </p>
+    </header>
+  </a>
 
   <script src="app.js"></script>
 </body>

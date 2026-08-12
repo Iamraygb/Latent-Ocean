@@ -793,25 +793,18 @@ body.hover-beta .reveal-explain[data-term="beta"] {
   pointer-events: none;
 }
 
-/* Title and byline share a row; the hint sits on its own line beneath. */
-/* Text column beside the lockup, both vertically centred. The bar's height is
-   whichever of the two is taller, instead of the lockup's height plus the
-   stacked lines that used to sit beneath it. */
-/* stretch, not center: the lockup grows to the row's height so the two
-   sentences sit within its vertical span rather than beside its midpoint. */
-.status-line {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: stretch;
-  justify-content: space-between;
-  gap: 0.3rem 1rem;
-}
-
 .status-text {
   display: flex;
   flex-direction: column;
   gap: 0.08rem;
   min-width: 0;
+}
+
+/* The panel itself stays click-through so it never blocks a cloud drag
+   beneath it. Only the credit link opts back in, or it would be
+   unclickable. */
+#status-panel .credit a {
+  pointer-events: auto;
 }
 
 #status-panel h1 {
@@ -842,44 +835,42 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 
    Reproduces the lab site's own presentation: Roboto Light on white, black
    text, normal letter spacing. It therefore keeps its own colours rather than
-   inheriting the dark panel's, which is why it sits on a white card.
+   inheriting the rest of the page's, which is why it sits on a white card.
 
-   The selectors are ID-qualified because #status-panel h1 and #status-panel p
-   would otherwise win on specificity and override the weights below.
+   Pinned to the bottom-left corner of the viewport, independent of the
+   explainer bar at the top.
 --------------------------------------------------------------------------- */
 
-/* The panel itself stays click-through so it never blocks a cloud drag beneath
-   it. Only the two links opt back in, or they would be unclickable. */
-#status-panel .lab-link,
-#status-panel .credit a {
-  pointer-events: auto;
-}
-
-#status-panel .lab-link {
+.lab-link {
+  position: fixed;
+  left: 0.9rem;
+  bottom: 0.9rem;
+  z-index: 20;
   display: flex;
   text-decoration: none;
   border-radius: 0.25rem;
 }
 
-#status-panel .lab-link:focus-visible {
+.lab-link:focus-visible {
   outline: 3px solid #ffffff;
   outline-offset: 3px;
 }
 
-#status-panel .lab-header {
+.lab-header {
   margin: 0;
   padding: 0.26rem 0.6rem 0.3rem;
   display: flex;
   flex-direction: column;
-  justify-content: center;   /* text stays centred as the card grows */
+  justify-content: center;
   background: #ffffff;
   color: #000000;
   border-radius: 0.25rem;
   font-family: "Roboto", "Helvetica Neue", Helvetica, Arial, sans-serif;
   letter-spacing: normal;
+  box-shadow: 0 2px 14px rgba(0, 20, 60, 0.35);
 }
 
-#status-panel .lab-header .post-title {
+.lab-header .post-title {
   margin: 0;
   font-weight: 300;          /* Roboto Light */
   font-size: 0.92rem;
@@ -888,7 +879,7 @@ body.hover-beta .reveal-explain[data-term="beta"] {
   color: #000000;
 }
 
-#status-panel .lab-header .desc {
+.lab-header .desc {
   margin: 0.04rem 0 0;
   font-weight: 300;          /* Roboto Light Italic */
   font-style: italic;
@@ -899,8 +890,8 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 }
 
 /* Underline only on interaction, so the lockup reads as a logo at rest. */
-#status-panel .lab-link:hover .post-title,
-#status-panel .lab-link:focus-visible .post-title {
+.lab-link:hover .post-title,
+.lab-link:focus-visible .post-title {
   text-decoration: underline;
 }
 
@@ -1007,6 +998,12 @@ body.hover-beta .reveal-explain[data-term="beta"] {
     max-width: none;
   }
 
+  /* No free corner on a phone: the HUD panels and Reef Penalty slider both
+     dock full-width along the bottom edge here. */
+  .lab-link {
+    display: none;
+  }
+
   /* Capped to fit the empty band below the world, so it never covers the cloud
      it is describing. The panel scrolls internally instead. */
   .reveal-panel {
@@ -1104,9 +1101,5 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 
   #status-panel {
     padding: 0.28rem 0.55rem 0.32rem;
-  }
-
-  .status-line {
-    gap: 0.2rem 0.6rem;
   }
 }
