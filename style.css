@@ -794,14 +794,24 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 }
 
 /* Title and byline share a row; the hint sits on its own line beneath. */
-/* Centred rather than baseline-aligned: the lab lockup is two lines tall while
-   the title is one, and baseline alignment pushed all of that extra height
-   below the title as apparent empty space. */
+/* Text column beside the lockup, both vertically centred. The bar's height is
+   whichever of the two is taller, instead of the lockup's height plus the
+   stacked lines that used to sit beneath it. */
+/* stretch, not center: the lockup grows to the row's height so the two
+   sentences sit within its vertical span rather than beside its midpoint. */
 .status-line {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 0.6rem;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 0.3rem 1rem;
+}
+
+.status-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.08rem;
+  min-width: 0;
 }
 
 #status-panel h1 {
@@ -821,9 +831,9 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 }
 
 #status-panel .hint {
-  margin: 0.12rem 0 0;
-  font-size: 0.78rem;
-  line-height: 1.35;
+  margin: 0;
+  font-size: 0.76rem;
+  line-height: 1.3;
   color: rgba(220, 238, 250, 0.9);
 }
 
@@ -846,7 +856,7 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 }
 
 #status-panel .lab-link {
-  display: block;
+  display: flex;
   text-decoration: none;
   border-radius: 0.25rem;
 }
@@ -859,6 +869,9 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 #status-panel .lab-header {
   margin: 0;
   padding: 0.26rem 0.6rem 0.3rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;   /* text stays centred as the card grows */
   background: #ffffff;
   color: #000000;
   border-radius: 0.25rem;
@@ -895,12 +908,12 @@ body.hover-beta .reveal-explain[data-term="beta"] {
    Credit line, at the foot of the bar
 --------------------------------------------------------------------------- */
 
+/* No separator rule now: it would only span the text column, and the bar is
+   compact enough that the dimmer colour is separation enough. */
 #status-panel .credit {
-  margin: 0.28rem 0 0;
-  padding-top: 0.26rem;
-  border-top: 1px solid rgba(200, 225, 255, 0.22);
-  font-size: 0.68rem;
-  line-height: 1.4;
+  margin: 0;
+  font-size: 0.66rem;
+  line-height: 1.3;
   color: rgba(220, 238, 250, 0.75);
 }
 
