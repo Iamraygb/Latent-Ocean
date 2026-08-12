@@ -998,12 +998,6 @@ body.hover-beta .reveal-explain[data-term="beta"] {
     max-width: none;
   }
 
-  /* No free corner on a phone: the HUD panels and Reef Penalty slider both
-     dock full-width along the bottom edge here. */
-  .lab-link {
-    display: none;
-  }
-
   /* Capped to fit the empty band below the world, so it never covers the cloud
      it is describing. The panel scrolls internally instead. */
   .reveal-panel {
@@ -1066,6 +1060,16 @@ body.hover-beta .reveal-explain[data-term="beta"] {
     line-height: 1.35;
   }
 
+}
+
+/* No free corner on a genuinely narrow phone: the HUD panels and Reef Penalty
+   slider both dock full-width along the bottom edge here, right where the
+   lockup sits. 40rem (the layout breakpoint above) was catching ordinary
+   unmaximized desktop windows too, so this gets its own tighter threshold. */
+@media (max-width: 26rem) {
+  .lab-link {
+    display: none;
+  }
 }
 
 /* Short viewports, chiefly a phone held in landscape. The world fills the full
