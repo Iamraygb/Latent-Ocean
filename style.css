@@ -783,7 +783,7 @@ body.hover-beta .reveal-explain[data-term="beta"] {
   z-index: 20;
   width: max-content;
   max-width: calc(100vw - 1.5rem);
-  padding: 0.5rem 0.85rem 0.6rem;
+  padding: 0.42rem 0.85rem 0.45rem;
   background: rgba(9, 32, 78, 0.88);
   border: 1px solid rgba(140, 190, 255, 0.28);
   border-radius: 0.4rem;
@@ -794,10 +794,13 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 }
 
 /* Title and byline share a row; the hint sits on its own line beneath. */
+/* Centred rather than baseline-aligned: the lab lockup is two lines tall while
+   the title is one, and baseline alignment pushed all of that extra height
+   below the title as apparent empty space. */
 .status-line {
   display: flex;
   flex-wrap: wrap;
-  align-items: baseline;
+  align-items: center;
   gap: 0.25rem 0.6rem;
 }
 
@@ -818,9 +821,9 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 }
 
 #status-panel .hint {
-  margin: 0.3rem 0 0;
+  margin: 0.12rem 0 0;
   font-size: 0.78rem;
-  line-height: 1.45;
+  line-height: 1.35;
   color: rgba(220, 238, 250, 0.9);
 }
 
@@ -855,7 +858,7 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 
 #status-panel .lab-header {
   margin: 0;
-  padding: 0.35rem 0.65rem 0.4rem;
+  padding: 0.26rem 0.6rem 0.3rem;
   background: #ffffff;
   color: #000000;
   border-radius: 0.25rem;
@@ -866,18 +869,18 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 #status-panel .lab-header .post-title {
   margin: 0;
   font-weight: 300;          /* Roboto Light */
-  font-size: 1rem;
-  line-height: 1.15;
+  font-size: 0.92rem;
+  line-height: 1.1;
   letter-spacing: normal;
   color: #000000;
 }
 
 #status-panel .lab-header .desc {
-  margin: 0.1rem 0 0;
+  margin: 0.04rem 0 0;
   font-weight: 300;          /* Roboto Light Italic */
   font-style: italic;
-  font-size: 0.7rem;
-  line-height: 1.3;
+  font-size: 0.66rem;
+  line-height: 1.25;
   letter-spacing: normal;
   color: #000000;
 }
@@ -893,8 +896,8 @@ body.hover-beta .reveal-explain[data-term="beta"] {
 --------------------------------------------------------------------------- */
 
 #status-panel .credit {
-  margin: 0.4rem 0 0;
-  padding-top: 0.35rem;
+  margin: 0.28rem 0 0;
+  padding-top: 0.26rem;
   border-top: 1px solid rgba(200, 225, 255, 0.22);
   font-size: 0.68rem;
   line-height: 1.4;
